@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Which AI Trust Tier Are You?</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="tier-tally-badge-wrapper" style="margin:2em 0 1em 0; text-align:center; display:none;">
+        <div id="tier-tally-table" style="margin-bottom:1em; display:none;"></div>
+        <div id="badge-earned" style="display:none;"></div>
+    </div>
+    <div id="start-screen">
+        <h1>What Level of AI Power Should You Be Trusted With?</h1>
+        <h2>Take this short test to find out how much chaos you could unleash.</h2>
+        <p>
+            Welcome to the only quiz that determines if you’re a digital saint, a creative tinkerer, or a future headline in the AI Incident Report. <br><br>
+            <strong>AI safety</strong> isn’t just for the robots—it’s for the humans who think they can outsmart them. Answer honestly (or don’t, but the AI will know). <br><br>
+            <em>Remember: With great power comes great responsibility... and sometimes, great disaster. Let’s see if you’re ready for the keys to the AI kingdom—or if you should stick to Minesweeper.</em>
+        </p>
+        <button id="start-btn">Start Quiz</button>
+    </div>
+    <div id="quiz-container" style="display:none;"></div>
+
+    <div class="results" id="results" style="display:none;" aria-live="polite">
+        <h2 id="results-congrats"></h2>
+        <button id="reveal-results-btn" title="Reveal your fate! (But remember: with great access comes great responsibility)">🔓 Click here to reveal your access level (if you dare...)</button>
+        <p id="result-text" style="display:none;"></p>
+        <div id="ai-safety-message">
+            🤔 <em>Remember: The real question isn’t just what you’d do with AI power—it’s who else might get the keys. In a world where one clever prompt can change everything, are we ready for the consequences of digital mischief? AI doesn’t judge, but maybe we should.</em>
+        </div>
+        <div id="restart-warning" style="display:none; color:#b00; background:#fff3cd; border:1px solid #ffeeba; padding:1em; border-radius:8px; margin-bottom:1em; font-weight:bold; text-align:center;"></div>
+        <button id="restart-btn" 
+            title="Careful! Every retry brings you one step closer to being flagged for 'excessive optimism.' AI access is a privilege, not a right. 😉"
+            disabled>
+            ↩️ Try again? (The AI is still judging you)
+        </button>
+        <p><a href="https://github.com/mindbomber/ai-trust-tier-access-control/blob/main/WHITEPAPER.md" target="_blank">Learn about the real AI Trust Tier Framework (Whitepaper)</a></p>
+        <div id="share-cta">
+            <strong>Share your AI Trust Tier (and tempt fate):</strong><br>
+            <a href="#" id="share-x" title="Share on X (Twitter)">🐦 X</a>
+            <a href="#" id="share-fb" title="Share on Facebook">📘 Facebook</a>
+            <a href="#" id="share-li" title="Share on LinkedIn">💼 LinkedIn</a>
+            <a href="https://github.com/mindbomber/ai-trust-tier-access-control" target="_blank" title="Contribute on GitHub">💻 Contribute</a>
+        </div>
+    </div>
+
+    <script src="questions.js"></script>
+    <script src="results.js"></script>
+    <script src="quiz-logic.js"></script>
+</body>
+</html>

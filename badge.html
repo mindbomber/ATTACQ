@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Your AI Trust Tier Badge</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { text-align: center; padding: 2em; background: #f8fbff; }
+        .badge-img { height: 320px; margin-bottom: 1em; }
+        .badge-tier { font-size: 2em; font-weight: bold; color: #4f8cff; margin-bottom: 0.5em; }
+        .restart-btn { margin-top: 2em; font-size: 1.2em; padding: 0.8em 2.2em; border-radius: 10px; background: #4f8cff; color: #fff; border: none; cursor: pointer; font-weight: bold; }
+        .share-cta { margin: 2em 0 1em 0; text-align: center; }
+        .share-cta a { margin: 0 0.7em; font-size: 1.5em; text-decoration: none; }
+        .social-btn {
+            display: inline-block;
+            margin: 0 0.5em;
+            padding: 0.7em 1.5em 0.7em 2.2em;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #fff;
+            text-decoration: none;
+            position: relative;
+            transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+            box-shadow: 0 2px 8px #e0e7ef;
+        }
+        .social-btn:active {
+            transform: scale(0.97);
+        }
+        .x-btn {
+            background: #222;
+        }
+        .x-btn::before {
+            content: '🐦';
+            position: absolute;
+            left: 0.7em;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2em;
+        }
+        .fb-btn {
+            background: #1877f3;
+        }
+        .fb-btn::before {
+            content: '📘';
+            position: absolute;
+            left: 0.7em;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2em;
+        }
+        .li-btn {
+            background: #0077b5;
+        }
+        .li-btn::before {
+            content: '💼';
+            position: absolute;
+            left: 0.7em;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2em;
+        }
+        .social-btn:hover {
+            filter: brightness(1.08);
+            box-shadow: 0 4px 16px #c0d7ef;
+        }
+    </style>
+    <!-- Add Open Graph meta tags for social sharing -->
+    <meta property="og:title" content="Your AI Trust Tier Badge" />
+    <meta property="og:description" content="Show off your AI Trust Tier badge from the quiz!" />
+    <meta property="og:image" id="og-image-meta" content="" />
+    <meta property="og:type" content="website" />
+</head>
+<body>
+    <div id="badge-content"></div>
+    <button class="restart-btn" id="restart-badge-btn">↩️ Restart Quiz From Beginning</button>
+    <div class="share-cta" id="share-cta" style="margin-top:3em; margin-bottom:0; text-align:center;">
+        <strong>Share your badge:</strong><br>
+        <a href="#" id="share-x" class="social-btn x-btn" title="Share on X (Twitter)" target="_blank" rel="noopener">🐦 X</a>
+        <a href="#" id="share-fb" class="social-btn fb-btn" title="Share on Facebook" target="_blank" rel="noopener">📘 Facebook</a>
+        <a href="#" id="share-li" class="social-btn li-btn" title="Share on LinkedIn" target="_blank" rel="noopener">💼 LinkedIn</a>
+    </div>
+    <script>
+        // Get badge from query string or localStorage
+        function getBadge() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let badge = urlParams.get('badge');
+            if (!badge) badge = localStorage.getItem('tierBadge');
+            return badge;
+        }
+        const BADGE_IMAGES = {
+            T4: "assets/t4.png",
+            T3: "assets/t3.png",
+            T2: "assets/t2.png",
+            T1: "assets/t1.png",
+            TX: "assets/tx.png"
+        };
+        const BADGE_LABELS = {
+            T4: '🛡️ The Synthetic Saint',
+            T3: '🧠 The AI Scholar',
+            T2: '🤖 The Creative Tinkerer',
+            T1: '👶 The Browser Baby',
+            TX: '💀 The Digital Supervillain'
+        };
+        const BADGE_DESCRIPTIONS = {
+            T4: `<div class='badge-desc'><div style='font-size:1.1em;'><strong>Threat Level:</strong> Less risky than airplane mode</div><div>Ethical to the point of suspicion. You’d probably report yourself for jaywalking in GTA.</div></div>`,
+            T3: `<div class='badge-desc'><div style='font-size:1.1em;'><strong>Threat Level:</strong> Mildly suspicious librarian</div><div>Cautious, knowledgeable, and occasionally dangerous... if you’re an overdue book.</div></div>`,
+            T2: `<div class='badge-desc'><div style='font-size:1.1em;'><strong>Threat Level:</strong> Cat near keyboard</div><div>Likely safe—but if left alone too long, might accidentally order 500 pizzas or launch a meme campaign.</div></div>`,
+            T1: `<div class='badge-desc'><div style='font-size:1.1em;'><strong>Threat Level:</strong> Puppy chewing a cable</div><div>You’re harmlessly chaotic—usually more confused than malicious. Needs constant AI babysitting.</div></div>`,
+            TX: `<div class='badge-desc'><div style='font-size:1.1em;'><strong>Threat Level:</strong> Human embodiment of ransomware</div><div>Probably uses dark mode out of moral alignment. Immediately revokes your admin privileges.</div></div>`
+        };
+        const badge = getBadge();
+        const badgeDiv = document.getElementById('badge-content');
+        if (badge && BADGE_IMAGES[badge]) {
+            badgeDiv.innerHTML = `
+                <img src='${BADGE_IMAGES[badge]}' alt='${badge} badge' class='badge-img'><br>
+                <div class='badge-tier'>${BADGE_LABELS[badge] || badge}</div>
+                ${BADGE_DESCRIPTIONS[badge] || ''}
+                <div style='font-size:1.2em; margin:1em 0;'>You earned this badge by achieving the <b>${badge}</b> tier 3 times!<br>Share your achievement or try for another badge.</div>
+            `;
+            // Social share logic
+            setTimeout(function() {
+                // Use the badge image as a card for social sharing (Open Graph)
+                const url = encodeURIComponent(window.location.origin + window.location.pathname + '?badge=' + badge);
+                const text = encodeURIComponent('I earned the ' + (BADGE_LABELS[badge] || badge) + ' badge (' + badge + ') on the AI Trust Tier Quiz! Find your tier:');
+                const image = encodeURIComponent(window.location.origin + '/' + BADGE_IMAGES[badge]);
+                // X (Twitter) does not support direct image upload via URL, but OG tags will help preview
+                document.getElementById('share-x').href = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
+                // Facebook and LinkedIn will use OG image meta tags for preview
+                document.getElementById('share-fb').href = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+                document.getElementById('share-li').href = `https://www.linkedin.com/shareArticle?mini=true&url=${url}&title=AI%20Trust%20Tier%20Badge&summary=${text}`;
+            }, 0);
+        } else {
+            badgeDiv.innerHTML = `<div style='font-size:1.3em; color:#b00;'>No badge found. Please earn a badge in the quiz first.</div>`;
+            document.getElementById('restart-badge-btn').style.display = 'none';
+            document.getElementById('share-cta').style.display = 'none';
+        }
+        document.getElementById('restart-badge-btn').onclick = function() {
+            localStorage.removeItem('tierTally');
+            localStorage.removeItem('tierBadge');
+            localStorage.removeItem('tierPlayCount');
+            window.location.href = 'ai_trust_tier_quiz.html';
+        };
+    </script>
+    <script>
+        // Dynamically set the OG image meta tag based on badge
+        (function() {
+            const badge = (new URLSearchParams(window.location.search)).get('badge') || localStorage.getItem('tierBadge');
+            if (badge && BADGE_IMAGES[badge]) {
+                var ogImg = document.getElementById('og-image-meta');
+                if (ogImg) ogImg.setAttribute('content', window.location.origin + '/' + BADGE_IMAGES[badge]);
+            }
+        })();
+    </script>
+    <script src="quiz-logic.js"></script>
+</body>
+</html>
