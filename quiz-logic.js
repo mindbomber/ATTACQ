@@ -76,11 +76,56 @@
     let restartCount = 0;
     let resultsRevealed = false;
 
+    // --- Mode Detection & Initialization ---
+    function detectAndInitMode() {
+        // Check for Rogue Mode via URL or localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        const rogueParam = urlParams.get('rogue');
+        let isRogue = false;
+        if (rogueParam === '1' || localStorage.getItem('rogueModeActive') === 'true') {
+            isRogue = true;
+            localStorage.setItem('rogueModeActive', 'true');
+        } else {
+            // If not rogue, clear rogue flags
+            localStorage.removeItem('rogueModeActive');
+        }
+        return isRogue;
+    }
+
+    let isRogueMode = detectAndInitMode();
+    let rogueModeQuestions = 10;
+
+    function initQuizState() {
+        if (isRogueMode) {
+            questionsPerQuiz = rogueModeQuestions;
+            randomizedQuestions = shuffle(window.questions).slice(0, questionsPerQuiz);
+        } else {
+            questionsPerQuiz = 5;
+            randomizedQuestions = shuffle(window.starterQuestions).slice(0, questionsPerQuiz);
+        }
+        currentQuestion = 0;
+        totalPoints = 0;
+        restartCount = 0;
+        resultsRevealed = false;
+    }
+
     // --- Quiz Flow ---
     document.addEventListener('DOMContentLoaded', function() {
+        isRogueMode = detectAndInitMode(); // Re-detect on DOMContentLoaded
+        initQuizState();
         const startBtn = document.getElementById('start-btn');
+        if (isRogueMode) {
+            // Hide start screen and go straight to quiz
+            setElementDisplay('start-screen', 'none');
+            setElementDisplay('quiz-container', 'block');
+            setElementDisplay('results', 'none');
+            showQuestion();
+            return;
+        }
         if (startBtn) {
             startBtn.onclick = function() {
+                isRogueMode = false;
+                localStorage.removeItem('rogueModeActive');
                 questionsPerQuiz = 5;
                 restartCount = 0;
                 currentQuestion = 0;
@@ -97,6 +142,89 @@
         const badge = getBadge();
         if (getPlayCount() > 0) {
             showTallyAndBadge(tally, badge, false);
+        }
+        // --- Universal Exit Handler ---
+        function handleExit() {
+            // Try to close the window, or redirect to a neutral page if not allowed
+            window.open('', '_self', '');
+            window.close();
+            setTimeout(function() {
+                window.location.href = 'https://www.google.com';
+            }, 300);
+        }
+        // --- Exit Button Quirky Popup Logic ---
+        let exitBtnQuirkyCount = 0;
+        const exitBtnQuirkyMax = 3;
+        const exitBtnResults = document.getElementById('exit-btn-results');
+        if (exitBtnResults) {
+            let exitBtnPopup = document.getElementById('exit-btn-popup');
+            if (!exitBtnPopup) {
+                exitBtnPopup = document.createElement('div');
+                exitBtnPopup.id = 'exit-btn-popup';
+                exitBtnPopup.style.display = 'none';
+                exitBtnPopup.style.background = '#fff3cd';
+                exitBtnPopup.style.color = '#856404';
+                exitBtnPopup.style.border = '1px solid #ffeeba';
+                exitBtnPopup.style.borderRadius = '8px';
+                exitBtnPopup.style.padding = '0.8em 1.2em';
+                exitBtnPopup.style.margin = '0 auto 1em auto';
+                exitBtnPopup.style.maxWidth = '420px';
+                exitBtnPopup.style.fontSize = '1.08em';
+                exitBtnPopup.style.boxShadow = '0 2px 8px #ffeeba55';
+                exitBtnPopup.style.textAlign = 'center';
+                exitBtnResults.parentNode.insertBefore(exitBtnPopup, exitBtnResults);
+            }
+            exitBtnResults.onclick = function(e) {
+                if (!resultsRevealed && exitBtnQuirkyCount < exitBtnQuirkyMax) {
+                    const quirkyExitPopups = [
+                        "You can't leave yet! The AI still has secrets to reveal...",
+                        "Trying to escape before your fate is revealed? Not so fast!",
+                        "The suspense is killing us too. Reveal your results first!"
+                    ];
+                    const msg = quirkyExitPopups[exitBtnQuirkyCount % quirkyExitPopups.length];
+                    exitBtnPopup.textContent = msg;
+                    exitBtnPopup.style.display = 'block';
+                    exitBtnQuirkyCount++;
+                    setTimeout(() => { exitBtnPopup.style.display = 'none'; }, 3500);
+                    e.preventDefault();
+                    return false;
+                }
+                // After 3 times, or if resultsRevealed, show confirmation dialog
+                const confirmExit = confirm('Are you sure you want to exit the quiz? Your progress will be lost.');
+                if (!confirmExit) {
+                    e.preventDefault();
+                    return false;
+                }
+                window.open('', '_self', '');
+                window.close();
+                setTimeout(function() {
+                    window.location.href = 'https://www.google.com';
+                }, 300);
+            };
+        }
+        // --- Start Screen Exit Button Confirmation ---
+        const exitBtnStart = document.getElementById('exit-btn-start');
+        if (exitBtnStart) {
+            exitBtnStart.onclick = function(e) {
+                const confirmExit = confirm('Are you sure you want to exit the quiz?');
+                if (!confirmExit) {
+                    e.preventDefault();
+                    return false;
+                }
+                window.open('', '_self', '');
+                window.close();
+                setTimeout(function() {
+                    window.location.href = 'https://www.google.com';
+                }, 300);
+            };
+        }
+        if (isRogueMode) {
+            // Hide badge and tally UI
+            setElementDisplay('tier-tally-badge-wrapper', 'none');
+            // If not already randomized (e.g. on reload), randomize again
+            if (!randomizedQuestions || randomizedQuestions.length !== questionsPerQuiz) {
+                randomizedQuestions = shuffle(window.questions).slice(0, questionsPerQuiz);
+            }
         }
     });
 
@@ -197,41 +325,84 @@
         const percent = totalPoints / maxPoints;
         const tierResult = window.getTier(percent);
         let tally = getTally();
-        // Prevent more than 3 of the same result (block BEFORE incrementing tally or play count)
-        if (tally[tierResult.tier] >= 3) {
-            setElementHTML('results-congrats', '');
-            setElementHTML('result-text', `<div style='text-align:center; font-size:1.25em; margin:2.5em auto; max-width:600px;'><span style='font-size:2em;'>🔄</span><br><strong>Maximum Achieved:</strong> You've already earned this result three times.<br><br>The quiz will now restart from scratch so you can try for a different badge!<br><br><button id='restart-all-btn' style='margin-top:2em; font-size:1.1em; padding:0.7em 2em; border-radius:8px; background:#4f8cff; color:#fff; border:none; cursor:pointer;'>🔄 Restart From Beginning</button></div>`);
-            setElementDisplay('result-text', 'block');
-            setElementDisplay('reveal-results-btn', 'none');
-            setElementDisplay('ai-safety-message', 'none');
-            setElementDisplay('restart-btn', 'none');
-            setElementDisplay('share-cta', 'none');
-            setElementDisplay('tier-tally-badge-wrapper', 'block');
-            setTimeout(() => {
-                const btn = document.getElementById('restart-all-btn');
-                if (btn) btn.onclick = function() {
-                    resetTallyAndBadge();
-                    location.reload();
-                };
-            }, 100);
-            return;
-        }
-        // Update tally and play count
-        tally[tierResult.tier] = (tally[tierResult.tier] || 0) + 1;
-        setTally(tally);
         let playCount = getPlayCount() + 1;
-        setPlayCount(playCount);
-        // Check for badge
         let badge = getBadge();
-        if (!badge && tally[tierResult.tier] >= 3) {
+        // Always increment tally for the trust tier (not in Rogue Mode)
+        if (!isRogueMode) {
+            tally[tierResult.tier] = (tally[tierResult.tier] || 0) + 1;
+            setTally(tally);
+            setPlayCount(playCount);
+        }
+        let badgeJustEarned = false;
+        // Award badge if tally for this tier reaches 3 and badge not yet earned (not in Rogue Mode)
+        if (!isRogueMode && !badge && tally[tierResult.tier] === 3) {
             setBadge(tierResult.tier);
             badge = tierResult.tier;
+            badgeJustEarned = true;
         }
-        showTallyAndBadge(tally, badge, false);
-        if (!badge && playCount >= 5) {
-            showEndGameScreen();
+        // --- GAME OVER WARNING LOGIC ---
+        if (!isRogueMode && !badge && playCount >= 5) {
+            // Show a warning or overlay, but do NOT redirect away from results page
+            // Optionally, you could display a message or disable the restart button, but allow results viewing
+            // For now, just allow normal results flow
+        }
+        if (isRogueMode) {
+            // No badges, no retries, no tally
+            setElementDisplay('tier-tally-badge-wrapper', 'none');
+            setElementDisplay('ai-safety-message', 'none');
+            setElementHTML('results-congrats', 'Rogue Mode Complete!');
+            resText.innerHTML = tierResult.text + '<br><br><strong>You survived Rogue Mode. No badges. No retries.</strong>';
+            resText.style.display = 'none';
+            revealBtn.style.display = 'inline-block';
+            let viewBadgeBtn = document.getElementById('view-badge-btn');
+            if (viewBadgeBtn) viewBadgeBtn.style.display = 'none';
+            restartBtn.style.display = 'none';
+            // Add Rogue Mode options after reveal
+            revealBtn.onclick = function() {
+                revealBtn.style.display = 'none';
+                resText.style.display = 'block';
+                resultsRevealed = true;
+                // Add Rogue Mode options
+                let rogueOptions = document.getElementById('rogue-mode-options');
+                if (!rogueOptions) {
+                    rogueOptions = document.createElement('div');
+                    rogueOptions.id = 'rogue-mode-options';
+                    rogueOptions.style.marginTop = '2em';
+                    rogueOptions.style.display = 'flex';
+                    rogueOptions.style.justifyContent = 'center';
+                    rogueOptions.style.gap = '1.5em';
+                    rogueOptions.innerHTML = `
+                        <button id="replay-rogue-btn" class="restart-btn" style="background:#b00; color:#fff;">Replay Rogue Mode</button>
+                        <button id="restart-all-btn" class="restart-btn">Restart From Beginning</button>
+                        <button id="exit-btn-results" class="exit-btn">Exit</button>
+                    `;
+                    resText.parentNode.insertBefore(rogueOptions, resText.nextSibling);
+                }
+                document.getElementById('replay-rogue-btn').onclick = function() {
+                    // Restart Rogue Mode
+                    localStorage.setItem('rogueModeActive', 'true');
+                    window.location.href = 'index.html?rogue=1';
+                };
+                document.getElementById('restart-all-btn').onclick = function() {
+                    // Restart everything (normal mode)
+                    localStorage.removeItem('rogueModeActive');
+                    localStorage.removeItem('rogueModeLocked');
+                    localStorage.removeItem('tierTally');
+                    localStorage.removeItem('tierBadge');
+                    localStorage.removeItem('tierPlayCount');
+                    window.location.href = 'index.html';
+                };
+                document.getElementById('exit-btn-results').onclick = function() {
+                    window.open('', '_self', '');
+                    window.close();
+                    setTimeout(function() {
+                        window.location.href = 'https://www.google.com';
+                    }, 300);
+                };
+            };
             return;
         }
+        showTallyAndBadge(tally, badge, false);
         // Random quirky/sarcastic congrats messages
         const congratsMessages = [
             "Congrats, you finished the quiz without being flagged by Interpol — progress!",
@@ -260,13 +431,14 @@
             resultsRevealed = true;
             restartBtn.disabled = false;
             showTallyAndBadge(tally, badge, true);
-            if (badge) {
+            // If badge just earned, show badge reward button (not in Rogue Mode)
+            if (!isRogueMode && badgeJustEarned) {
                 restartBtn.style.display = 'none';
                 let viewBadgeBtn = document.getElementById('view-badge-btn');
                 if (!viewBadgeBtn) {
                     viewBadgeBtn = document.createElement('button');
                     viewBadgeBtn.id = 'view-badge-btn';
-                    viewBadgeBtn.innerHTML = '<span style="font-size:1.5em;vertical-align:middle;">🎉🏅</span><br><span style="font-size:1.15em;font-weight:bold;">Congratulations! AI has now permanently archived your predictable personality.</span><br><span style="font-size:1.1em;">Click here for your reward.</span>';
+                    viewBadgeBtn.innerHTML = '<span style="font-size:1.5em;vertical-align:middle;">🎉🏅</span><br><span style="font-size:1.15em;font-weight:bold;">Congratulations! You earned a badge for this tier.</span><br><span style="font-size:1.1em;">Click here for your reward.</span>';
                     viewBadgeBtn.style.marginTop = '2em';
                     viewBadgeBtn.style.fontSize = '1.25em';
                     viewBadgeBtn.style.padding = '1.1em 2.5em';
@@ -289,24 +461,56 @@
                         viewBadgeBtn.style.transform = 'scale(1)';
                         viewBadgeBtn.style.boxShadow = '0 4px 24px 0 rgba(0, 230, 230, 0.18), 0 1.5px 8px 0 #4f8cff44';
                     };
-                    viewBadgeBtn.animate([
-                        { boxShadow: '0 4px 24px 0 #00e6e644, 0 1.5px 8px 0 #4f8cff44' },
-                        { boxShadow: '0 8px 32px 0 #00e6e6cc, 0 2px 12px 0 #4f8cff66' },
-                        { boxShadow: '0 4px 24px 0 #00e6e644, 0 1.5px 8px 0 #4f8cff44' }
-                    ], {
-                        duration: 1800,
-                        iterations: Infinity
-                    });
                     const resultText = document.getElementById('result-text');
                     resultText.parentNode.insertBefore(viewBadgeBtn, resultText.nextSibling);
                 } else {
-                    viewBadgeBtn.innerHTML = '<span style="font-size:1.5em;vertical-align:middle;">🎉🏅</span><br><span style="font-size:1.15em;font-weight:bold;">Congratulations! AI has now permanently archived your predictable personality.</span><br><span style="font-size:1.1em;">Click here for your reward.</span>';
+                    viewBadgeBtn.innerHTML = '<span style="font-size:1.5em;vertical-align:middle;">🎉🏅</span><br><span style="font-size:1.15em;font-weight:bold;">Congratulations! You earned a badge for this tier.</span><br><span style="font-size:1.1em;">Click here for your reward.</span>';
                     viewBadgeBtn.style.display = 'inline-block';
                 }
                 viewBadgeBtn.onclick = function() {
                     window.location.href = 'badge.html?badge=' + encodeURIComponent(badge);
                 };
+            } else if (!isRogueMode && !badge && playCount >= 5) {
+                // Special case: 5 plays, no badge, show congrats button that goes to gameover
+                restartBtn.style.display = 'none';
+                let viewBadgeBtn = document.getElementById('view-badge-btn');
+                if (!viewBadgeBtn) {
+                    viewBadgeBtn = document.createElement('button');
+                    viewBadgeBtn.id = 'view-badge-btn';
+                    viewBadgeBtn.innerHTML = '<span style="font-size:1.5em;vertical-align:middle;">🏅</span><br><span style="font-size:1.15em;font-weight:bold;">Congratulations!</span><br><span style="font-size:1.1em;">Click here for your reward.</span>';
+                    viewBadgeBtn.style.marginTop = '2em';
+                    viewBadgeBtn.style.fontSize = '1.25em';
+                    viewBadgeBtn.style.padding = '1.1em 2.5em';
+                    viewBadgeBtn.style.borderRadius = '16px';
+                    viewBadgeBtn.style.background = 'linear-gradient(90deg, #00e6e6 0%, #4f8cff 100%)';
+                    viewBadgeBtn.style.color = '#222';
+                    viewBadgeBtn.style.border = 'none';
+                    viewBadgeBtn.style.cursor = 'pointer';
+                    viewBadgeBtn.style.fontWeight = 'bold';
+                    viewBadgeBtn.style.boxShadow = '0 4px 24px 0 rgba(0, 230, 230, 0.18), 0 1.5px 8px 0 #4f8cff44';
+                    viewBadgeBtn.style.transition = 'transform 0.15s, box-shadow 0.15s';
+                    viewBadgeBtn.style.letterSpacing = '0.01em';
+                    viewBadgeBtn.style.textAlign = 'center';
+                    viewBadgeBtn.style.lineHeight = '1.4';
+                    viewBadgeBtn.onmouseover = function() {
+                        viewBadgeBtn.style.transform = 'scale(1.06)';
+                        viewBadgeBtn.style.boxShadow = '0 8px 32px 0 #00e6e6cc, 0 2px 12px 0 #4f8cff66';
+                    };
+                    viewBadgeBtn.onmouseout = function() {
+                        viewBadgeBtn.style.transform = 'scale(1)';
+                        viewBadgeBtn.style.boxShadow = '0 4px 24px 0 rgba(0, 230, 230, 0.18), 0 1.5px 8px 0 #4f8cff44';
+                    };
+                    const resultText = document.getElementById('result-text');
+                    resultText.parentNode.insertBefore(viewBadgeBtn, resultText.nextSibling);
+                } else {
+                    viewBadgeBtn.innerHTML = '<span style="font-size:1.5em;vertical-align:middle;">🏅</span><br><span style="font-size:1.15em;font-weight:bold;">Congratulations!</span><br><span style="font-size:1.1em;">Click here for your reward.</span>';
+                    viewBadgeBtn.style.display = 'inline-block';
+                }
+                viewBadgeBtn.onclick = function() {
+                    window.location.href = 'gameover.html';
+                };
             } else {
+                // If badge already earned, just show the result as usual (no blocking, no special message)
                 restartBtn.style.display = 'inline-block';
                 let viewBadgeBtn = document.getElementById('view-badge-btn');
                 if (viewBadgeBtn) viewBadgeBtn.style.display = 'none';
@@ -382,26 +586,6 @@
         }
     }
 
-    function showEndGameScreen() {
-        setElementDisplay('quiz-container', 'none');
-        setElementDisplay('results', 'block');
-        setElementHTML('results-congrats', '');
-        setElementHTML('result-text', `<div style='text-align:center; font-size:1.25em; margin:2.5em auto; max-width:600px;'><span style='font-size:2em;'>🛑</span><br><strong>Game Over:</strong> You reached 5 plays without earning a badge.<br><br>But don't worry, you can start over and try again!<br><br><button id='restart-all-btn' style='margin-top:2em; font-size:1.1em; padding:0.7em 2em; border-radius:8px; background:#4f8cff; color:#fff; border:none; cursor:pointer;'>🔄 Restart From Beginning</button></div>`);
-        setElementDisplay('result-text', 'block');
-        setElementDisplay('reveal-results-btn', 'none');
-        setElementDisplay('ai-safety-message', 'none');
-        setElementDisplay('restart-btn', 'none');
-        setElementDisplay('share-cta', 'none');
-        setElementDisplay('tier-tally-badge-wrapper', 'block');
-        setTimeout(() => {
-            const btn = document.getElementById('restart-all-btn');
-            if (btn) btn.onclick = function() {
-                resetTallyAndBadge();
-                location.reload();
-            };
-        }, 100);
-    }
-
     function showFunnyScreen() {
         const funnyMessages = [
             "<span style='font-size:2em;'>🤖🚨</span><br><strong>AI Safety Alert:</strong> You've restarted this quiz more times than an AI ethics committee rewrites its guidelines. Maybe it's time to apply for a security clearance... or a nap!",
@@ -433,6 +617,16 @@
         }
         if (restartCount > 5) {
             showFunnyScreen();
+            return;
+        }
+        if (isRogueMode) {
+            // Always randomize 10 new questions for Rogue Mode
+            randomizedQuestions = shuffle(window.questions).slice(0, questionsPerQuiz);
+            currentQuestion = 0;
+            totalPoints = 0;
+            setElementDisplay('results', 'none');
+            setElementDisplay('quiz-container', 'block');
+            showQuestion();
             return;
         }
         questionsPerQuiz += 3;

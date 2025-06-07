@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Over – AI Trust Tier Quiz</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #f8fbff; }
+        .gameover-container {
+            max-width: 600px;
+            margin: 6em auto 0 auto;
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 4px 32px #00e6e633, 0 1.5px 8px #4f8cff22;
+            padding: 2.5em 2em 2em 2em;
+            text-align: center;
+        }
+        .gameover-container h1 {
+            font-size: 2.2em;
+            margin-bottom: 0.5em;
+        }
+        .gameover-container p {
+            font-size: 1.25em;
+            margin-bottom: 2em;
+        }
+        .restart-btn {
+            font-size: 1.1em;
+            padding: 0.7em 2em;
+            border-radius: 8px;
+            background: #4f8cff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            margin-top: 1.5em;
+        }
+        .exit-btn {
+            font-size: 1.1em;
+            padding: 0.7em 2em;
+            border-radius: 8px;
+            background: #ff4f4f;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            margin-top: 2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="gameover-container">
+        <div style="font-size:2.5em;">🛑</div>
+        <h1>Game Over</h1>
+        <p>You reached 5 plays without earning a badge.<br>
+        But don't worry, you can start over and try again!</p>
+        <button class="restart-btn" id="restart-all-btn">🔄 Restart From Beginning</button>
+        <div id="gameover-content">
+          <button id="exit-btn-gameover" class="exit-btn" style="margin-top:2em;">Exit</button>
+        </div>
+    </div>
+    <script>
+        document.getElementById('restart-all-btn').onclick = function() {
+            localStorage.removeItem('tierTally');
+            localStorage.removeItem('tierBadge');
+            localStorage.removeItem('tierPlayCount');
+            window.location.href = 'index.html';
+        };
+        document.getElementById('exit-btn-gameover').onclick = function() {
+            // Universal exit handler: try to close, else redirect
+            window.open('', '_self', '');
+            window.close();
+            setTimeout(function() {
+                window.location.href = 'https://www.google.com';
+            }, 300);
+        };
+    </script>
+</body>
+</html>

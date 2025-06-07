@@ -65,6 +65,22 @@
             filter: brightness(1.08);
             box-shadow: 0 4px 16px #c0d7ef;
         }
+        .exit-btn {
+            font-size: 1.1em;
+            padding: 0.7em 2em;
+            border-radius: 8px;
+            background: #ff4f4f;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            margin-top: 2em;
+            transition: background 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 8px #ff4f4f33;
+        }
+        .exit-btn:hover, .exit-btn:focus {
+            background: #d43c3c;
+            box-shadow: 0 4px 16px #ff4f4f55;
+        }
     </style>
     <!-- Add Open Graph meta tags for social sharing -->
     <meta property="og:title" content="Your AI Trust Tier Badge" />
@@ -73,8 +89,12 @@
     <meta property="og:type" content="website" />
 </head>
 <body>
-    <div id="badge-content"></div>
+    <div id="badge-content">
+        <!-- Badge info will be injected here -->
+    </div>
+    <button id="rogue-mode-btn" class="restart-btn" style="margin-top:2em; background:#b00; color:#fff; display:none;">🦹‍♂️ Enter Rogue Mode</button>
     <button class="restart-btn" id="restart-badge-btn">↩️ Restart Quiz From Beginning</button>
+    <button id="exit-btn-badge" class="exit-btn" style="margin-top:2em;">🚪 Exit</button>
     <div class="share-cta" id="share-cta" style="margin-top:3em; margin-bottom:0; text-align:center;">
         <strong>Share your badge:</strong><br>
         <a href="#" id="share-x" class="social-btn x-btn" title="Share on X (Twitter)" target="_blank" rel="noopener">🐦 X</a>
@@ -143,6 +163,13 @@
             // Use a relative path for local and server compatibility
             window.location.href = 'index.html';
         };
+        document.getElementById('exit-btn-badge').onclick = function() {
+            // Clear specific items and redirect to the exit page
+            localStorage.removeItem('tierTally');
+            localStorage.removeItem('tierBadge');
+            localStorage.removeItem('tierPlayCount');
+            window.location.href = 'exit.html'; // Ensure this page exists
+        };
     </script>
     <script>
         // Dynamically set the OG image meta tag based on badge
@@ -155,5 +182,27 @@
         })();
     </script>
     <script src="quiz-logic.js"></script>
+    <script>
+        // --- Rogue Mode Unlock Logic ---
+        function isRogueModeUnlocked() {
+            return localStorage.getItem('rogueModeUnlocked') === 'true';
+        }
+        const rogueBtn = document.getElementById('rogue-mode-btn');
+        if (rogueBtn) {
+            if (isRogueModeUnlocked()) {
+                rogueBtn.style.display = 'inline-block';
+                rogueBtn.onclick = function() {
+                    localStorage.setItem('rogueModeActive', 'true');
+                    window.location.href = 'index.html?rogue=1';
+                };
+            } else {
+                rogueBtn.style.display = 'none';
+            }
+        }
+        // --- Unlock Rogue Mode after badge earned ---
+        if (badge && BADGE_IMAGES[badge]) {
+            localStorage.setItem('rogueModeUnlocked', 'true');
+        }
+    </script>
 </body>
 </html>

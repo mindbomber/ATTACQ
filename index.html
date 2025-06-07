@@ -6,13 +6,32 @@
     <title>Which AI Trust Tier Are You?</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
+    <style>
+        .exit-btn {
+            font-size: 1.1em;
+            padding: 0.7em 2em;
+            border-radius: 8px;
+            background: #ff4f4f;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            margin-top: 2em;
+            transition: background 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 8px #ff4f4f33;
+        }
+        .exit-btn:hover, .exit-btn:focus {
+            background: #d43c3c;
+            box-shadow: 0 4px 16px #ff4f4f55;
+        }
+    </style>
 </head>
 <body>
     <div id="tier-tally-badge-wrapper" style="margin:2em 0 1em 0; text-align:center; display:none;">
         <div id="tier-tally-table" style="margin-bottom:1em; display:none;"></div>
         <div id="badge-earned" style="display:none;"></div>
     </div>
-    <div id="start-screen">
+    <!-- Start Screen -->
+    <div id="start-screen" class="screen">
         <h1>What Level of AI Power Should You Be Trusted With?</h1>
         <h2>Take this short test to find out how much chaos you could unleash.</h2>
         <p>
@@ -21,10 +40,12 @@
             <em>Remember: With great power comes great responsibility... and sometimes, great disaster. Let’s see if you’re ready for the keys to the AI kingdom—or if you should stick to Minesweeper.</em>
         </p>
         <button id="start-btn">Start Quiz</button>
+        <button id="exit-btn-start" class="exit-btn" style="margin-top:2em;">Exit</button>
     </div>
     <div id="quiz-container" style="display:none;"></div>
 
-    <div class="results" id="results" style="display:none;" aria-live="polite">
+    <!-- Results Screen -->
+    <div class="results" id="results" class="screen" style="display:none;" aria-live="polite">
         <h2 id="results-congrats"></h2>
         <button id="reveal-results-btn" title="Reveal your fate! (But remember: with great access comes great responsibility)">🔓 Click here to reveal your access level (if you dare...)</button>
         <p id="result-text" style="display:none;"></p>
@@ -32,11 +53,14 @@
             🤔 <em>Remember: The real question isn’t just what you’d do with AI power—it’s who else might get the keys. In a world where one clever prompt can change everything, are we ready for the consequences of digital mischief? AI doesn’t judge, but maybe we should.</em>
         </div>
         <div id="restart-warning" style="display:none; color:#b00; background:#fff3cd; border:1px solid #ffeeba; padding:1em; border-radius:8px; margin-bottom:1em; font-weight:bold; text-align:center;"></div>
-        <button id="restart-btn" 
-            title="Careful! Every retry brings you one step closer to being flagged for 'excessive optimism.' AI access is a privilege, not a right. 😉"
-            disabled>
-            ↩️ Try again? (The AI is still judging you)
-        </button>
+        <div style="display: flex; justify-content: center; gap: 1em; margin-top: 2em;">
+            <button id="restart-btn" 
+                title="Careful! Every retry brings you one step closer to being flagged for 'excessive optimism.' AI access is a privilege, not a right. 😉"
+                disabled>
+                ↩️ Try again? (The AI is still judging you)
+            </button>
+            <button id="exit-btn-results" class="exit-btn" style="margin-top:2em;">Exit</button>
+        </div>
         <p><a href="https://github.com/mindbomber/ai-trust-tier-access-control/blob/main/WHITEPAPER.md" target="_blank">Learn about the real AI Trust Tier Framework (Whitepaper)</a></p>
         <div id="share-cta">
             <strong>Share your AI Trust Tier (and tempt fate):</strong><br>
