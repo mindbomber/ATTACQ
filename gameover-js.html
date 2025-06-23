@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Over – AI Trust Tier Quiz</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="gameover-content"></div>
+    
+    <!-- Load the JavaScript module -->
+    <script type="module">
+        import GameOverScreen from './screens/gameover-screen.js';
+        
+        // Initialize the game over screen
+        GameOverScreen.load();
+    </script>
+    
+    <!-- Fallback for browsers that don't support modules -->
+    <script nomodule>
+        // Fallback to inline JavaScript for older browsers
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('gameover-content').innerHTML = `
+                <div class="gameover-container">
+                    <div style="font-size:2.5em;">🛑</div>
+                    <h1>Game Over</h1>
+                    <p>You reached 5 plays without earning a badge.<br>
+                    But don't worry, you can start over and try again!</p>
+                    <div class="button-group">
+                        <button class="restart-btn" id="restart-all-btn">🔄 Restart From Beginning</button>
+                        <button id="exit-btn-gameover" class="exit-btn">Exit</button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('restart-all-btn').onclick = function() {
+                localStorage.removeItem('tierTally');
+                localStorage.removeItem('tierBadge');
+                localStorage.removeItem('tierPlayCount');
+                window.location.href = 'index.html';
+            };
+            
+            document.getElementById('exit-btn-gameover').onclick = function() {
+                window.open('', '_self', '');
+                window.close();
+                setTimeout(function() {
+                    window.location.href = 'https://www.google.com';
+                }, 300);
+            };
+            
+            var audio = new Audio('assets/sounds/gameover.mp3');
+            audio.play().catch(function(){});
+        });
+    </script>
+</body>
+</html>

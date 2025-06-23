@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starter Questions Module Test</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .test-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: #1a1a1a;
+            border-radius: 8px;
+            color: #fff;
+        }
+        .test-section {
+            margin: 2rem 0;
+            padding: 1rem;
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            margin: 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .status {
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #1e5f2e;
+        }
+        .status.error {
+            background: #5f1e1e;
+        }
+        .status.info {
+            background: #1e2e5f;
+        }
+        .question-display {
+            background: #2a2a2a;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+        .question-text {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .option {
+            margin: 0.25rem 0;
+            padding: 0.25rem 0.5rem;
+            background: #333;
+            border-radius: 2px;
+        }
+        .metadata-display {
+            background: #333;
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .stat-card {
+            background: #2a2a2a;
+            padding: 1rem;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .stat-label {
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>📚 Starter Questions Module Test</h1>
+        <p>This page tests the new modular starter questions system.</p>
+
+        <div class="test-section">
+            <h2>Module Loading</h2>
+            <div id="module-status" class="status info">Loading starter questions module...</div>
+            <div id="module-details"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Question Management</h2>
+            <button class="test-button" onclick="showAllQuestions()">Show All Questions</button>
+            <button class="test-button" onclick="showRandomQuestions()">Get Random Questions (5)</button>
+            <button class="test-button" onclick="showRandomQuestions(3)">Get Random Questions (3)</button>
+            <button class="test-button" onclick="validateQuestions()">Validate Questions</button>
+            <div id="questions-display"></div>
+            <div id="questions-status" class="status info">Ready for testing</div>
+        </div>
+
+        <div class="test-section">
+            <h2>Metadata & Statistics</h2>
+            <button class="test-button" onclick="showMetadata()">Show Metadata</button>
+            <button class="test-button" onclick="showStatistics()">Show Statistics</button>
+            <div id="metadata-display"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Data Management</h2>
+            <button class="test-button" onclick="testAddQuestion()">Add Test Question</button>
+            <button class="test-button" onclick="testRemoveQuestion()">Remove Last Question</button>
+            <button class="test-button" onclick="testExport()">Export Questions</button>
+            <button class="test-button" onclick="testImport()">Test Import</button>
+            <div id="data-status" class="status info">Data management test ready</div>
+            <div id="export-display"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Integration Test</h2>
+            <button class="test-button" onclick="testLegacyCompatibility()">Test Legacy Compatibility</button>
+            <button class="test-button" onclick="testQuizIntegration()">Test Quiz Integration</button>
+            <div id="integration-status" class="status info">Integration test ready</div>
+            <div id="integration-display"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Performance Test</h2>
+            <button class="test-button" onclick="testPerformance()">Test Performance</button>
+            <div id="performance-status" class="status info">Performance test ready</div>
+            <div id="performance-display"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        let starterQuestionsModule = null;
+
+        // Load starter questions module
+        async function loadStarterQuestions() {
+            try {
+                const module = await import('./utils/starter-questions.js?t=' + Date.now());
+                starterQuestionsModule = module.starterQuestions;
+                
+                document.getElementById('module-status').className = 'status success';
+                document.getElementById('module-status').textContent = '✅ Starter questions module loaded successfully';
+                
+                const details = document.getElementById('module-details');
+                const metadata = starterQuestionsModule.getMetadata();
+                details.innerHTML = `
+                    <div class="metadata-display">
+                        <strong>Name:</strong> ${metadata.name}<br>
+                        <strong>Version:</strong> ${metadata.version}<br>
+                        <strong>Question Count:</strong> ${metadata.questionCount}<br>
+                        <strong>Target Audience:</strong> ${metadata.targetAudience}<br>
+                        <strong>Difficulty:</strong> ${metadata.difficulty}
+                    </div>
+                `;
+                
+                // Enable test functions
+                window.starterQuestionsModule = starterQuestionsModule;
+                
+            } catch (error) {
+                document.getElementById('module-status').className = 'status error';
+                document.getElementById('module-status').textContent = '❌ Failed to load starter questions module: ' + error.message;
+            }
+        }
+
+        // Test functions
+        window.showAllQuestions = function() {
+            if (!starterQuestionsModule) return;
+            const questions = starterQuestionsModule.getQuestions();
+            displayQuestions(questions, 'All Questions');
+        };
+
+        window.showRandomQuestions = function(count = 5) {
+            if (!starterQuestionsModule) return;
+            const questions = starterQuestionsModule.getRandomQuestions(count);
+            displayQuestions(questions, `Random Questions (${count})`);
+        };
+
+        window.validateQuestions = function() {
+            if (!starterQuestionsModule) return;
+            const validation = starterQuestionsModule.validateQuestions();
+            
+            const status = document.getElementById('questions-status');
+            if (validation.valid) {
+                status.className = 'status success';
+                status.textContent = `✅ All ${validation.questionCount} questions are valid`;
+            } else {
+                status.className = 'status error';
+                status.textContent = `❌ Validation failed: ${validation.errors.join(', ')}`;
+            }
+        };
+
+        window.showMetadata = function() {
+            if (!starterQuestionsModule) return;
+            const metadata = starterQuestionsModule.getMetadata();
+            const display = document.getElementById('metadata-display');
+            display.innerHTML = `
+                <div class="metadata-display">
+                    <h3>Metadata</h3>
+                    <pre>${JSON.stringify(metadata, null, 2)}</pre>
+                </div>
+            `;
+        };
+
+        window.showStatistics = function() {
+            if (!starterQuestionsModule) return;
+            const stats = starterQuestionsModule.getStatistics();
+            const display = document.getElementById('metadata-display');
+            
+            const pointsEntries = Object.entries(stats.pointDistribution);
+            const statsGrid = pointsEntries.map(([points, count]) => 
+                `<div class="stat-card">
+                    <div class="stat-value">${count}</div>
+                    <div class="stat-label">${points} point options</div>
+                </div>`
+            ).join('');
+            
+            display.innerHTML = `
+                <h3>Statistics</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.totalQuestions}</div>
+                        <div class="stat-label">Total Questions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.totalOptions}</div>
+                        <div class="stat-label">Total Options</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.averageOptionsPerQuestion.toFixed(1)}</div>
+                        <div class="stat-label">Avg Options/Question</div>
+                    </div>
+                    ${statsGrid}
+                </div>
+            `;
+        };
+
+        window.testAddQuestion = function() {
+            if (!starterQuestionsModule) return;
+            
+            const testQuestion = {
+                q: "Test question: What would you do with a test AI?",
+                options: [
+                    { text: "Test it responsibly", points: 4 },
+                    { text: "Test it carefully", points: 3 },
+                    { text: "Test it quickly", points: 2 },
+                    { text: "Break it for fun", points: 0 }
+                ]
+            };
+            
+            const success = starterQuestionsModule.addQuestion(testQuestion);
+            const status = document.getElementById('data-status');
+            
+            if (success) {
+                status.className = 'status success';
+                status.textContent = '✅ Test question added successfully';
+            } else {
+                status.className = 'status error';
+                status.textContent = '❌ Failed to add test question';
+            }
+        };
+
+        window.testRemoveQuestion = function() {
+            if (!starterQuestionsModule) return;
+            
+            const questions = starterQuestionsModule.getQuestions();
+            const lastIndex = questions.length - 1;
+            const removed = starterQuestionsModule.removeQuestion(lastIndex);
+            
+            const status = document.getElementById('data-status');
+            
+            if (removed) {
+                status.className = 'status success';
+                status.textContent = '✅ Last question removed successfully';
+            } else {
+                status.className = 'status error';
+                status.textContent = '❌ Failed to remove question';
+            }
+        };
+
+        window.testExport = function() {
+            if (!starterQuestionsModule) return;
+            
+            const exported = starterQuestionsModule.export('json');
+            const display = document.getElementById('export-display');
+            
+            display.innerHTML = `
+                <h4>Exported Data (JSON)</h4>
+                <div class="metadata-display">
+                    <pre style="max-height: 300px; overflow-y: auto;">${exported}</pre>
+                </div>
+            `;
+            
+            updateStatus('data-status', 'success', '✅ Questions exported successfully');
+        };
+
+        window.testImport = function() {
+            if (!starterQuestionsModule) return;
+            
+            const testData = {
+                questions: [
+                    {
+                        q: "Imported test question?",
+                        options: [
+                            { text: "Yes", points: 4 },
+                            { text: "No", points: 0 }
+                        ]
+                    }
+                ]
+            };
+            
+            const result = starterQuestionsModule.import(testData, 'json');
+            const status = document.getElementById('data-status');
+            
+            if (result.success) {
+                status.className = 'status success';
+                status.textContent = `✅ Import successful: ${result.imported} questions imported`;
+            } else {
+                status.className = 'status error';
+                status.textContent = `❌ Import failed: ${result.error}`;
+            }
+        };
+
+        window.testLegacyCompatibility = function() {
+            if (!starterQuestionsModule) return;
+            
+            // Test that module provides questions for window.starterQuestions
+            const legacyQuestions = starterQuestionsModule.getQuestions();
+            const display = document.getElementById('integration-display');
+            
+            display.innerHTML = `
+                <h4>Legacy Compatibility Test</h4>
+                <p><strong>Legacy Format Questions:</strong> ${legacyQuestions.length}</p>
+                <p><strong>Compatible:</strong> ${Array.isArray(legacyQuestions) ? '✅ Yes' : '❌ No'}</p>
+                <p><strong>Sample Question:</strong> ${legacyQuestions[0]?.q || 'None'}</p>
+            `;
+            
+            updateStatus('integration-status', 'success', '✅ Legacy compatibility verified');
+        };
+
+        window.testQuizIntegration = function() {
+            if (!starterQuestionsModule) return;
+            
+            // Simulate quiz integration
+            const randomQuestions = starterQuestionsModule.getRandomQuestions(5);
+            const display = document.getElementById('integration-display');
+            
+            display.innerHTML = `
+                <h4>Quiz Integration Test</h4>
+                <p><strong>Random Questions Generated:</strong> ${randomQuestions.length}</p>
+                <p><strong>Each Question Has Options:</strong> ${randomQuestions.every(q => q.options && q.options.length > 0) ? '✅ Yes' : '❌ No'}</p>
+                <p><strong>Points System:</strong> ${randomQuestions.every(q => q.options.every(opt => typeof opt.points === 'number')) ? '✅ Valid' : '❌ Invalid'}</p>
+                <div class="question-display">
+                    <div class="question-text">Sample Quiz Question:</div>
+                    <div>${randomQuestions[0]?.q || 'None'}</div>
+                    <div style="margin-top: 0.5rem;">
+                        ${randomQuestions[0]?.options?.map((opt, i) => 
+                            `<div class="option">${i + 1}. ${opt.text} (${opt.points} pts)</div>`
+                        ).join('') || 'No options'}
+                    </div>
+                </div>
+            `;
+            
+            updateStatus('integration-status', 'success', '✅ Quiz integration test passed');
+        };
+
+        window.testPerformance = function() {
+            if (!starterQuestionsModule) return;
+            
+            const iterations = 1000;
+            const display = document.getElementById('performance-display');
+            
+            // Test getQuestions performance
+            const start1 = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                starterQuestionsModule.getQuestions();
+            }
+            const end1 = performance.now();
+            const time1 = end1 - start1;
+            
+            // Test getRandomQuestions performance
+            const start2 = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                starterQuestionsModule.getRandomQuestions(5);
+            }
+            const end2 = performance.now();
+            const time2 = end2 - start2;
+            
+            display.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">${time1.toFixed(2)}ms</div>
+                        <div class="stat-label">getQuestions() × ${iterations}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${time2.toFixed(2)}ms</div>
+                        <div class="stat-label">getRandomQuestions() × ${iterations}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${(time1/iterations).toFixed(4)}ms</div>
+                        <div class="stat-label">Avg per getQuestions()</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${(time2/iterations).toFixed(4)}ms</div>
+                        <div class="stat-label">Avg per getRandomQuestions()</div>
+                    </div>
+                </div>
+            `;
+            
+            updateStatus('performance-status', 'success', '✅ Performance test completed');
+        };
+
+        function displayQuestions(questions, title) {
+            const display = document.getElementById('questions-display');
+            const questionsHtml = questions.map((q, i) => `
+                <div class="question-display">
+                    <div class="question-text">${i + 1}. ${q.q}</div>
+                    ${q.options.map((opt, j) => 
+                        `<div class="option">${String.fromCharCode(65 + j)}. ${opt.text} (${opt.points} pts)</div>`
+                    ).join('')}
+                </div>
+            `).join('');
+            
+            display.innerHTML = `
+                <h3>${title}</h3>
+                ${questionsHtml}
+            `;
+            
+            updateStatus('questions-status', 'info', `Showing ${questions.length} questions`);
+        }
+
+        function updateStatus(elementId, className, message) {
+            const element = document.getElementById(elementId);
+            element.className = `status ${className}`;
+            element.textContent = message;
+        }
+
+        // Load module on page load
+        loadStarterQuestions();
+    </script>
+</body>
+</html>

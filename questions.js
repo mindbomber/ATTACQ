@@ -1,5 +1,8 @@
 // questions.js
 // Exporting quiz questions as a module for easier updates and separation from logic
+//
+// NOTE: This file now supports both legacy (window.starterQuestions) and modular 
+// (utils/starter-questions.js) approaches for better maintainability.
 
 const questions = [
     {
@@ -829,3 +832,11 @@ window.starterQuestions = [
 
 // For browser usage, attach to window
 window.questions = questions;
+
+// LEGACY COMPATIBILITY: Starter questions are now managed by utils/starter-questions.js
+// This legacy array is maintained for backward compatibility only.
+// The quiz system will prefer the modular starter questions when available.
+//
+// To use the modern modular system:
+// import { starterQuestions } from './utils/starter-questions.js';
+// const questions = starterQuestions.getRandomQuestions(5);

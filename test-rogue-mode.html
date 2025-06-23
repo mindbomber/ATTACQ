@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rogue Mode Test</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .test-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: #1a1a1a;
+            border-radius: 8px;
+            color: #fff;
+        }
+        .test-section {
+            margin: 2rem 0;
+            padding: 1rem;
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            margin: 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .rogue-button {
+            background: #b00;
+        }
+        .rogue-button:hover {
+            background: #800;
+        }
+        .status {
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #1e5f2e;
+        }
+        .status.error {
+            background: #5f1e1e;
+        }
+        .status.info {
+            background: #1e2e5f;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🎭 Rogue Mode Module Test</h1>
+        <p>This page tests the new modular rogue mode system.</p>
+
+        <div class="test-section">
+            <h2>Module Loading</h2>
+            <div id="module-status" class="status info">Loading rogue mode module...</div>
+            <div id="module-details"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>State Management</h2>
+            <button class="test-button" onclick="testActivation()">Test Activation</button>
+            <button class="test-button" onclick="testDeactivation()">Test Deactivation</button>
+            <button class="test-button" onclick="testUnlock()">Test Unlock</button>
+            <button class="test-button" onclick="testLock()">Test Lock</button>
+            <div id="state-status" class="status info">Ready for testing</div>
+        </div>
+
+        <div class="test-section">
+            <h2>UI Integration</h2>
+            <button class="test-button" onclick="testCreateButton()">Create Rogue Button</button>
+            <button class="test-button" onclick="testResultsButtons()">Create Results Buttons</button>
+            <div id="ui-container"></div>
+            <div id="ui-status" class="status info">Ready for UI tests</div>
+        </div>
+
+        <div class="test-section">
+            <h2>Configuration</h2>
+            <button class="test-button" onclick="showConfiguration()">Show Current Config</button>
+            <div id="config-display"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Navigation Test</h2>
+            <button class="test-button rogue-button" onclick="testNavigation()">Test Navigate to Rogue Mode</button>
+            <button class="test-button" onclick="testNormalNavigation()">Test Navigate to Normal Mode</button>
+            <div id="nav-status" class="status info">Navigation test ready (will redirect)</div>
+        </div>
+
+        <div class="test-section">
+            <h2>Data Management</h2>
+            <button class="test-button" onclick="testDataClear()">Test Clear Rogue Data</button>
+            <button class="test-button" onclick="testFullDataClear()">Test Clear All Game Data</button>
+            <div id="data-status" class="status info">Data management test ready</div>
+        </div>
+    </div>
+
+    <script type="module">
+        let rogueMode = null;
+
+        // Load rogue mode module
+        async function loadRogueMode() {
+            try {
+                const module = await import('./utils/rogue-mode.js?t=' + Date.now());
+                rogueMode = module.rogueMode;
+                
+                document.getElementById('module-status').className = 'status success';
+                document.getElementById('module-status').textContent = '✅ Rogue mode module loaded successfully';
+                
+                const details = document.getElementById('module-details');
+                details.innerHTML = `
+                    <p><strong>Active:</strong> ${rogueMode.isActiveMode()}</p>
+                    <p><strong>Unlocked:</strong> ${rogueMode.isRogueModeUnlocked()}</p>
+                    <p><strong>Questions Count:</strong> ${rogueMode.getQuestionsCount()}</p>
+                `;
+                
+                // Enable test functions
+                window.rogueMode = rogueMode;
+                
+            } catch (error) {
+                document.getElementById('module-status').className = 'status error';
+                document.getElementById('module-status').textContent = '❌ Failed to load rogue mode module: ' + error.message;
+            }
+        }
+
+        // Test functions
+        window.testActivation = function() {
+            if (!rogueMode) return;
+            rogueMode.activate();
+            updateStatus('state-status', 'success', '✅ Rogue mode activated');
+        };
+
+        window.testDeactivation = function() {
+            if (!rogueMode) return;
+            rogueMode.deactivate();
+            updateStatus('state-status', 'success', '✅ Rogue mode deactivated');
+        };
+
+        window.testUnlock = function() {
+            if (!rogueMode) return;
+            rogueMode.unlock();
+            updateStatus('state-status', 'success', '✅ Rogue mode unlocked');
+        };
+
+        window.testLock = function() {
+            if (!rogueMode) return;
+            rogueMode.lock();
+            updateStatus('state-status', 'success', '✅ Rogue mode locked');
+        };
+
+        window.testCreateButton = function() {
+            if (!rogueMode) return;
+            const container = document.getElementById('ui-container');
+            container.innerHTML = '';
+            
+            const button = rogueMode.createRogueButton();
+            container.appendChild(button);
+            updateStatus('ui-status', 'success', '✅ Rogue button created and added');
+        };
+
+        window.testResultsButtons = function() {
+            if (!rogueMode) return;
+            // Activate rogue mode first for results buttons
+            rogueMode.activate();
+            
+            const container = document.getElementById('ui-container');
+            container.innerHTML = '';
+            
+            const buttonsGroup = rogueMode.createRogueResultsButtons();
+            if (buttonsGroup) {
+                container.appendChild(buttonsGroup);
+                updateStatus('ui-status', 'success', '✅ Rogue results buttons created and added');
+            } else {
+                updateStatus('ui-status', 'error', '❌ Failed to create results buttons');
+            }
+        };
+
+        window.showConfiguration = function() {
+            if (!rogueMode) return;
+            const config = rogueMode.getConfiguration();
+            const display = document.getElementById('config-display');
+            display.innerHTML = `
+                <pre style="background: #333; padding: 1rem; border-radius: 4px; color: #0f0;">
+${JSON.stringify(config, null, 2)}
+                </pre>
+            `;
+        };
+
+        window.testNavigation = function() {
+            if (!rogueMode) return;
+            updateStatus('nav-status', 'info', '🔄 Navigating to rogue mode in 3 seconds...');
+            setTimeout(() => {
+                rogueMode.navigateToRogueMode();
+            }, 3000);
+        };
+
+        window.testNormalNavigation = function() {
+            if (!rogueMode) return;
+            updateStatus('nav-status', 'info', '🔄 Navigating to normal mode in 3 seconds...');
+            setTimeout(() => {
+                rogueMode.navigateToNormalMode();
+            }, 3000);
+        };
+
+        window.testDataClear = function() {
+            if (!rogueMode) return;
+            rogueMode.clearRogueData();
+            updateStatus('data-status', 'success', '✅ Rogue data cleared');
+        };
+
+        window.testFullDataClear = function() {
+            if (!rogueMode) return;
+            rogueMode.clearAllGameData();
+            updateStatus('data-status', 'success', '✅ All game data cleared');
+        };
+
+        function updateStatus(elementId, className, message) {
+            const element = document.getElementById(elementId);
+            element.className = `status ${className}`;
+            element.textContent = message;
+        }
+
+        // Load module on page load
+        loadRogueMode();
+    </script>
+</body>
+</html>

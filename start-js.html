@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Trust Tier Quiz – Start</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Open Graph meta tags for social sharing -->
+    <meta property="og:title" content="AI Trust Tier Quiz" />
+    <meta property="og:description" content="What Level of AI Power Should You Be Trusted With? Take this short test to find out!" />
+    <meta property="og:type" content="website" />
+</head>
+<body>
+    <main>
+        <!-- Tier Tally Badge and Table (hidden on start) -->
+        <div id="tier-tally-badge-wrapper" style="margin:2em 0 1em 0; text-align:center; display:none;">
+            <div id="tier-tally-table" style="margin-bottom:1em; display:none;"></div>
+            <div id="badge-earned" style="display:none;"></div>
+        </div>
+
+        <div id="start-content"></div>
+    </main>
+    
+    <!-- Load required dependencies for quiz functionality -->
+    <script src="debug-utils.js"></script>
+    <script src="questions.js"></script>
+    <script src="results.js"></script>
+    <script src="OFFICIAL_BADGE_SYSTEM.js"></script>
+    <script src="microgames/unified-microgame-system.js"></script>
+    <script src="quiz-logic.js"></script>
+    
+    <!-- Load the JavaScript module -->
+    <script type="module">
+        import StartScreen from './screens/start-screen.js';
+        
+        // Initialize the start screen
+        StartScreen.load();
+    </script>
+    
+    <!-- Fallback for browsers that don't support modules -->
+    <script nomodule>
+        // Fallback to inline JavaScript for older browsers
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('start-content').innerHTML = `
+                <div class="start-container screen">
+                    <h1>What Level of AI Power Should You Be Trusted With?</h1>
+                    <h2>Take this short test to find out how much chaos you could unleash.</h2>
+                    <p>
+                        Welcome to the only quiz that determines if you're a digital saint, a creative tinkerer, or a future headline in the AI Incident Report. <br><br>
+                        <strong>AI safety</strong> isn't just for the robots—it's for the humans who think they can outsmart them. Answer honestly (or don't, but the AI will know). <br><br>
+                        <em>Remember: With great power comes great responsibility... and sometimes, great disaster. Let's see if you're ready for the keys to the AI kingdom—or if you should stick to Minesweeper.</em>
+                    </p>
+                    <div class="button-group">
+                        <button id="start-btn" type="button" class="start-btn">Start Quiz</button>
+                        <button id="exit-btn-start" class="exit-btn" type="button" style="margin-top:2em;">Exit</button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('start-btn').onclick = function() {
+                if (typeof startQuiz === 'function') {
+                    startQuiz();
+                } else {
+                    window.location.href = 'index.html';
+                }
+            };
+            
+            document.getElementById('exit-btn-start').onclick = function() {
+                window.open('', '_self', '');
+                window.close();
+                setTimeout(function() {
+                    window.location.href = 'https://www.google.com';
+                }, 300);
+            };
+            
+            // Play start sound
+            try {
+                var audio = new Audio('assets/sounds/start.wav');
+                audio.volume = 0.3;
+                audio.play().catch(function(){});
+            } catch (error) {}
+        });
+    </script>
+</body>
+</html>

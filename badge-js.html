@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Your AI Trust Tier Badge</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <!-- Open Graph meta tags for social sharing -->
+    <meta property="og:title" content="Your AI Trust Tier Badge" />
+    <meta property="og:description" content="Show off your AI Trust Tier badge from the quiz!" />
+    <meta property="og:image" id="og-image-meta" content="" />
+    <meta property="og:type" content="website" />
+</head>
+<body>
+    <div id="badge-content"></div>
+    <div class="button-group"></div>
+    <div class="share-cta" id="share-cta" style="margin-top:3em; margin-bottom:0; text-align:center; display:none;"></div>
+    
+    <!-- Load required dependencies -->
+    <script src="OFFICIAL_BADGE_SYSTEM.js"></script>
+    <script src="quiz-logic.js"></script>
+    
+    <!-- Load the JavaScript module -->
+    <script type="module">
+        import BadgeScreen from './screens/badge-screen.js';
+        
+        // Initialize the badge screen
+        BadgeScreen.load();
+    </script>
+    
+    <!-- Fallback for browsers that don't support modules -->
+    <script nomodule>
+        // Fallback to inline JavaScript for older browsers
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get badge from query string or localStorage
+            function getBadge() {
+                const urlParams = new URLSearchParams(window.location.search);
+                let badge = urlParams.get('badge');
+                if (!badge) badge = localStorage.getItem('tierBadge');
+                return badge;
+            }
+
+            const badge = getBadge();
+            const badgeDiv = document.getElementById('badge-content');
+            
+            if (badge) {
+                let badgeData = null;
+                if (typeof getBadgeById === 'function') {
+                    badgeData = getBadgeById(badge);
+                }
+
+                if (!badgeData) {
+                    const tierBadges = (window.TIER_BADGES || TIER_BADGES);
+                    if (badge.includes('_')) {
+                        const tier = badge.split('_')[0];
+                        if (tierBadges && tierBadges[tier] && tierBadges[tier].length > 0) {
+                            badgeData = tierBadges[tier][0];
+                        }
+                    }
+                }
+
+                if (badgeData) {
+                    badgeDiv.innerHTML = `
+                        <img src='${badgeData.artwork}' alt='${badgeData.title} badge' class='badge-img'><br>
+                        <div class='badge-tier'>${badgeData.title}</div>
+                        <div class='badge-desc'>
+                            <div style='font-size:1.1em;'><strong>Threat Level:</strong> ${badgeData.threatLevel}</div>
+                            <div>${badgeData.description}</div>
+                        </div>
+                        <div style='font-size:1.2em; margin:1em 0;'>You earned this badge by achieving the <b>${badgeData.tier}</b> tier 3 times!</div>
+                    `;
+                } else {
+                    badgeDiv.innerHTML = `<div style='font-size:1.3em; color:#b00;'>Badge not found.</div>`;
+                }
+            } else {
+                badgeDiv.innerHTML = `<div style='font-size:1.3em; color:#b00;'>No badge found.</div>`;
+            }
+
+            // Add buttons
+            document.querySelector('.button-group').innerHTML = `
+                <button class="restart-btn" id="restart-badge-btn">↩️ Restart Quiz</button>
+                <button id="exit-btn-badge" class="exit-btn">🚪 Exit</button>
+            `;
+
+            document.getElementById('restart-badge-btn').onclick = function() {
+                localStorage.removeItem('tierTally');
+                localStorage.removeItem('tierBadge');
+                localStorage.removeItem('tierPlayCount');
+                window.location.href = 'index.html';
+            };
+
+            document.getElementById('exit-btn-badge').onclick = function() {
+                window.location.href = 'exit.html';
+            };
+
+            // Play badge sound
+            try {
+                var audio = new Audio('assets/sounds/badge.wav');
+                audio.volume = 0.3;
+                audio.play().catch(function(){});
+            } catch (error) {}
+        });
+    </script>
+</body>
+</html>

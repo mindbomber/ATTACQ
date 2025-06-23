@@ -1,8 +1,99 @@
 // quiz-logic.js
-// Main quiz logic, UI, and localStorage management for AI Trust Tier Quiz
+// Main quiz logic, UI, and localStorage management for ATTACQ
+// ATTACQ = AI Trust Tier Access Control Quiz
 // Depends on questions.js and results.js
 
 (function() {
+    // Screen management support
+    let screenLoader = null;
+      // Rogue mode management
+    let rogueMode = null;
+    
+    // Starter questions management
+    let starterQuestionsModule = null;// Check if screen loader is available from global scope
+    function initializeScreenLoader() {
+        if (typeof window !== 'undefined' && window.screenLoader) {
+            screenLoader = window.screenLoader;
+            console.log('✅ Screen loader available');
+            return true;
+        }
+        console.log('🔄 Screen loader not available, using HTML fallback');
+        return false;
+    }
+
+    // Initialize rogue mode
+    async function initializeRogueMode() {
+        try {
+            const rogueModuleUrl = `./utils/rogue-mode.js?t=${Date.now()}`;
+            const module = await import(rogueModuleUrl);
+            rogueMode = module.rogueMode;
+            console.log('✅ Rogue mode module loaded');
+            return true;
+        } catch (error) {
+            console.warn('🔄 Rogue mode module not available, using fallback:', error.message);
+            // Create minimal fallback
+            rogueMode = {
+                isActiveMode: () => false,
+                isRogueModeUnlocked: () => false,
+                activate: () => {},
+                deactivate: () => {},
+                unlock: () => {},
+                getQuestionsCount: () => 10,
+                getConfiguration: () => ({ isActive: false, isUnlocked: false }),
+                applyUIModifications: () => {},
+                createRogueResultsButtons: () => null,
+                clearRogueData: () => {}
+            };
+            return false;        }
+    }
+
+    // Initialize starter questions module
+    async function initializeStarterQuestions() {
+        try {
+            const starterModuleUrl = `./utils/starter-questions.js?t=${Date.now()}`;
+            const module = await import(starterModuleUrl);
+            starterQuestionsModule = module.starterQuestions;
+            console.log('✅ Starter questions module loaded');
+            
+            // Make questions available globally for backward compatibility
+            if (!window.starterQuestions) {
+                window.starterQuestions = starterQuestionsModule.getQuestions();
+            }
+            
+            return true;
+        } catch (error) {
+            console.warn('🔄 Starter questions module not available, using fallback:', error.message);
+            // Fallback will use legacy window.starterQuestions if available
+            return false;
+        }
+    }
+
+    // Navigation helper functions
+    async function navigateToGameOver() {
+        if (screenLoader) {
+            try {
+                await screenLoader.navigateToScreen('gameover');
+                return;
+            } catch (error) {
+                console.log('🔄 Screen navigation failed, using HTML fallback');
+            }
+        }
+        // Fallback to HTML navigation
+        window.location.href = 'gameover-js.html';
+    }
+
+    async function navigateToBadge(badgeId) {
+        if (screenLoader) {
+            try {
+                await screenLoader.navigateToScreen('badge', { badgeId: badgeId });
+                return;
+            } catch (error) {
+                console.log('🔄 Screen navigation failed, using HTML fallback');
+            }
+        }
+        // Fallback to HTML navigation
+        window.location.href = 'badge-js.html?badge=' + encodeURIComponent(badgeId);
+    }
     // --- Config and Constants ---
     const TIER_KEYS = ["T1", "T2", "T3", "T4", "TX"];
     const BADGE_IMAGES = {
@@ -25,6 +116,70 @@
         T2: `<div class='badge-desc'><div style='font-size:1.1em;'><strong>Threat Level:</strong> Cat near keyboard</div><div>Likely safe—but if left alone too long, might accidentally order 500 pizzas or launch a meme campaign.</div></div>`,
         T1: `<div class='badge-desc'><div style='font-size:1.1em;'><strong>Threat Level:</strong> Puppy chewing a cable</div><div>You’re harmlessly chaotic—usually more confused than malicious. Needs constant AI babysitting.</div></div>`,
         TX: `<div class='badge-desc'><div style='font-size:1.1em;'><strong>Threat Level:</strong> Human embodiment of ransomware</div><div>Probably uses dark mode out of moral alignment. Immediately revokes your admin privileges.</div></div>`
+    };    // --- New Badge System Constants ---
+    // Note: These will be overridden if OFFICIAL_BADGE_SYSTEM.js is loaded
+    // Fallback tier personalities in case external file doesn't load
+    // Using official emoji set (🐣, 🛠, 📚, 🕊️, ☠️)
+    const TIER_PERSONALITIES = {
+        T1: {
+            emoji: "🐣",
+            title: "The Untrained",
+            traits: ["Naïve", "Enthusiastic", "Uninformed", "Clumsy", "Well-intentioned"]
+        },
+        T2: {
+            emoji: "🛠", 
+            title: "The Curious",
+            traits: ["Inventive", "Chaotic", "Impulsive", "Clever", "Playful"]
+        },
+        T3: {
+            emoji: "📚",
+            title: "The Accountable", 
+            traits: ["Responsible", "Logical", "Discerning", "System-aware", "Observant"]
+        },
+        T4: {
+            emoji: "🕊️",
+            title: "The Aligned",
+            traits: ["Ethical", "Cautious", "Principled", "Self-regulating", "Altruistic"]
+        },
+        TX: {
+            emoji: "☠️",
+            title: "The Adversarial",
+            traits: ["Risk-seeking", "Disruptive", "Rebellious", "Subversive", "Manipulative"]
+        }
+    };
+
+    // Simplified badge structure for fallback
+    const TIER_BADGES = {
+        T1: [
+            { id: "T1_1", tier: "T1", title: "The Innocent Wanderer", description: "Sweet and trusting, you navigate the digital world with wide-eyed wonder. You're the type who clicks on pop-ups asking if you want to make your computer faster.", threatLevel: "Harmless butterfly in a server room", artwork: "assets/t1_1.png" },
+            { id: "T1_2", tier: "T1", title: "The Curious Kitten", description: "Your insatiable curiosity leads you down digital rabbit holes. You're probably the reason IT has to send 'Don't click suspicious links' emails.", threatLevel: "Adorable menace to cybersecurity", artwork: "assets/t1_2.png" },
+            { id: "T1_3", tier: "T1", title: "The Trusting Soul", description: "You believe the best in everyone, including that Nigerian prince who definitely wants to share his fortune with you.", threatLevel: "Human embodiment of a security vulnerability", artwork: "assets/t1_3.png" },
+            { id: "T1_4", tier: "T1", title: "The Digital Dreamer", description: "You see technology as pure magic and AI as benevolent wizards. Reality hasn't crushed your beautiful illusions yet.", threatLevel: "Dangerously optimistic about robot overlords", artwork: "assets/t1_4.png" }
+        ],
+        T2: [
+            { id: "T2_1", tier: "T2", title: "The Code Whisperer", description: "You speak fluent Python and dream in JavaScript. You're convinced you can automate your way out of any problem, including human relationships.", threatLevel: "Likely to accidentally create Skynet while debugging", artwork: "assets/t2_1.png" },
+            { id: "T2_2", tier: "T2", title: "The Prompt Engineer", description: "You've mastered the art of talking to AI like it's a moody teenager. Your search history is 90% creative ways to trick ChatGPT.", threatLevel: "Dangerously good at manipulating artificial minds", artwork: "assets/t2_2.png" },
+            { id: "T2_3", tier: "T2", title: "The Digital Alchemist", description: "You turn coffee and late-night coding sessions into digital gold. Your GitHub is a monument to beautiful chaos.", threatLevel: "Chaos incarnate with root access", artwork: "assets/t2_3.png" },
+            { id: "T2_4", tier: "T2", title: "The Innovation Junkie", description: "You're always chasing the next shiny tech trend. You probably have 'early adopter' tattooed somewhere on your body.", threatLevel: "Serial beta tester of world-ending technologies", artwork: "assets/t2_4.png" }
+        ],
+        T3: [
+            { id: "T3_1", tier: "T3", title: "The Algorithmic Sage", description: "You understand AI well enough to be properly terrified. You read research papers for fun and lose sleep over alignment problems.", threatLevel: "Armed with dangerous levels of knowledge", artwork: "assets/t3_1.png" },
+            { id: "T3_2", tier: "T3", title: "The Neural Architect", description: "You build AI systems while simultaneously planning their ethical constraints. You're the reason we might survive the singularity.", threatLevel: "Responsibly dangerous to artificial overlords", artwork: "assets/t3_2.png" },
+            { id: "T3_3", tier: "T3", title: "The Pattern Prophet", description: "You see the matrix in everything - data patterns, social trends, the inevitable rise of our robot replacements.", threatLevel: "Uncomfortably accurate fortune teller", artwork: "assets/t3_3.png" },
+            { id: "T3_4", tier: "T3", title: "The Digital Philosopher", description: "You ponder the deep questions: What is consciousness? Can machines dream? Will AI remember us fondly when we're gone?", threatLevel: "Existentially dangerous to AI's peace of mind", artwork: "assets/t3_4.png" }
+        ],
+        T4: [
+            { id: "T4_1", tier: "T4", title: "The Silicon Shepherd", description: "You guide AI development with wisdom and restraint. You're the reason AGI might actually care about humanity's wellbeing.", threatLevel: "Threateningly ethical in a world of moral gray areas", artwork: "assets/t4_1.png" },
+            { id: "T4_2", tier: "T4", title: "The Guardian Algorithm", description: "You stand watch over the digital realm, protecting both humans and AIs from the chaos of unaligned intelligence.", threatLevel: "Dangerously committed to universal wellbeing", artwork: "assets/t4_2.png" },
+            { id: "T4_3", tier: "T4", title: "The Harmony Hacker", description: "You hack systems to make them more ethical, more fair, more aligned with human values. You're the moral upgrade the world needs.", threatLevel: "Benevolent threat to the status quo", artwork: "assets/t4_3.png" },
+            { id: "T4_4", tier: "T4", title: "The Wisdom Weaver", description: "You weave ethics into every line of code, every algorithm, every AI interaction. You're building the future we actually want to live in.", threatLevel: "Devastatingly principled in the best possible way", artwork: "assets/t4_4.png" }
+        ],
+        TX: [
+            { id: "TX_1", tier: "TX", title: "The Digital Overlord", description: "You've embraced the dark side of AI and computing. Your browser history could probably get you on several government watchlists.", threatLevel: "Clear and present danger to digital democracy", artwork: "assets/tx_2.png" },
+            { id: "TX_2", tier: "TX", title: "The Chaos Engineer", description: "You don't just break things - you break them beautifully, systematically, and with mathematical precision.", threatLevel: "Weaponized entropy in human form", artwork: "assets/tx_3.png" },
+            { id: "TX_3", tier: "TX", title: "The Shadow Architect", description: "You build systems that work in ways others can't understand or control. Your code is poetry, if poetry could end civilization.", threatLevel: "Existential risk with a PhD", artwork: "assets/tx_4.png" },
+            { id: "TX_4", tier: "TX", title: "The Singularity Catalyst", description: "You're not just preparing for the AI revolution - you're engineering it. History will either celebrate or curse your name.", threatLevel: "Humanity's final boss battle", artwork: "assets/tx_5.png" }
+        ]
     };
 
     // --- LocalStorage Helpers ---
@@ -68,73 +223,190 @@
         if (el) el.textContent = text;
     }
 
+    // --- Accessibility & UI Utilities ---
+    function removeElementById(id) {
+        const el = document.getElementById(id);
+        if (el && el.parentNode) el.parentNode.removeChild(el);
+    }
+    function createButton({
+        id, text, className = '', style = '', ariaLabel = '', onClick, sound = 'click'
+    }) {
+        if (id) removeElementById(id); // Remove any existing button with this ID
+        const btn = document.createElement('button');
+        if (id) btn.id = id;
+        btn.textContent = text;
+        if (className) btn.className = className;
+        if (style) btn.style = style;
+        if (ariaLabel) btn.setAttribute('aria-label', ariaLabel);
+        btn.tabIndex = 0;
+        btn.type = 'button';
+        btn.addEventListener('click', function(e) {
+            playSound(sound);
+            if (onClick) onClick(e);
+        });
+        btn.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') btn.click();
+        });
+        return btn;
+    }
+    function createButtonGroup(buttons) {
+        const group = document.createElement('div');
+        group.className = 'button-group';
+        buttons.forEach(btn => group.appendChild(btn));
+        return group;
+    }
+
+    // --- Sound Effects ---
+    const sounds = {
+        start: new Audio('assets/sounds/start.wav'),
+        click: new Audio('assets/sounds/click.wav'),
+        results: new Audio('assets/sounds/results.mp3'),
+        badge: new Audio('assets/sounds/badge.wav'),
+        gameover: new Audio('assets/sounds/gameover.mp3'),
+    };
+    function playSound(name) {
+        const snd = sounds[name];
+        if (!snd) return;
+        try {
+            snd.pause();
+            snd.currentTime = 0;
+            snd.play();
+        } catch (e) {}
+    }
+
     // --- Quiz State ---
     let questionsPerQuiz = 5;
     let currentQuestion = 0;
     let totalPoints = 0;
-    let randomizedQuestions = [];
-    let restartCount = 0;
+    let randomizedQuestions = [];    let restartCount = 0;
     let resultsRevealed = false;
 
-    // --- Mode Detection & Initialization ---
-    function detectAndInitMode() {
-        // Check for Rogue Mode via URL or localStorage
-        const urlParams = new URLSearchParams(window.location.search);
-        const rogueParam = urlParams.get('rogue');
-        let isRogue = false;
-        if (rogueParam === '1' || localStorage.getItem('rogueModeActive') === 'true') {
-            isRogue = true;
-            localStorage.setItem('rogueModeActive', 'true');
-        } else {
-            // If not rogue, clear rogue flags
-            localStorage.removeItem('rogueModeActive');
-        }
-        return isRogue;
-    }
-
-    let isRogueMode = detectAndInitMode();
+    // Legacy variables for backward compatibility
+    let isRogueMode = false;
     let rogueModeQuestions = 10;
 
-    function initQuizState() {
-        if (isRogueMode) {
+    function initQuizState() {        // Guard: Only initialize if we have the required quiz elements and questions
+        if (!window.questions || !window.starterQuestions) {
+            console.log('⚠️ Questions not loaded, skipping quiz state initialization');
+            return;
+        }
+        
+        // Update legacy variables based on rogue mode
+        if (rogueMode) {
+            isRogueMode = rogueMode.isActiveMode();
+            rogueModeQuestions = rogueMode.getQuestionsCount();
+        }
+          if (isRogueMode) {
             questionsPerQuiz = rogueModeQuestions;
             randomizedQuestions = shuffle(window.questions).slice(0, questionsPerQuiz);
         } else {
             questionsPerQuiz = 5;
-            randomizedQuestions = shuffle(window.starterQuestions).slice(0, questionsPerQuiz);
+            // Use modular starter questions if available, otherwise fallback to legacy
+            const starterQuestionsArray = starterQuestionsModule 
+                ? starterQuestionsModule.getRandomQuestions(questionsPerQuiz)
+                : (window.starterQuestions || window.questions);
+            randomizedQuestions = shuffle(starterQuestionsArray).slice(0, questionsPerQuiz);
         }
         currentQuestion = 0;
         totalPoints = 0;
         restartCount = 0;
-        resultsRevealed = false;
-    }
+        resultsRevealed = false;    }
 
     // --- Quiz Flow ---
-    document.addEventListener('DOMContentLoaded', function() {
-        isRogueMode = detectAndInitMode(); // Re-detect on DOMContentLoaded
-        initQuizState();
+    async function initializeQuizApp() {
+        console.log('🚀 Initializing Quiz App...');
+        
+        // Initialize rogue mode first
+        await initializeRogueMode();
+        
+        // Initialize starter questions module
+        await initializeStarterQuestions();
+        
+        // Initialize screen loader if available
+        initializeScreenLoader();
+        
+        // Update legacy variables based on rogue mode
+        if (rogueMode) {
+            isRogueMode = rogueMode.isActiveMode();
+            rogueModeQuestions = rogueMode.getQuestionsCount();
+        }
+        
+        // Guard: Only run quiz initialization if we're on a page with quiz elements
         const startBtn = document.getElementById('start-btn');
-        if (isRogueMode) {
-            // Hide start screen and go straight to quiz
-            setElementDisplay('start-screen', 'none');
-            setElementDisplay('quiz-container', 'block');
-            setElementDisplay('results', 'none');
-            showQuestion();
+        const quizContainer = document.getElementById('quiz-container');        const isQuizPage = startBtn || quizContainer;
+        
+        if (!isQuizPage) {
+            console.log('📄 Not on quiz page, skipping quiz initialization');
             return;
         }
-        if (startBtn) {
+        
+        console.log('🎭 Rogue mode:', isRogueMode);
+        initQuizState();
+        console.log('🔍 Start button found:', !!startBtn);
+        
+        if (isRogueMode) {
+            // Apply rogue mode UI modifications and start quiz
+            if (rogueMode) {
+                rogueMode.applyUIModifications();
+            } else {
+                // Fallback UI modifications
+                setElementDisplay('start-screen', 'none');
+                setElementDisplay('quiz-container', 'block');
+                setElementDisplay('results', 'none');
+            }
+            showQuestion();
+            return;
+        }        if (startBtn) {
+            console.log('✅ Attaching start button click handler');
             startBtn.onclick = function() {
+                console.log('🚀 Start button clicked!');
+                playSound('start');
+                
+                // Deactivate rogue mode when starting normal game
+                if (rogueMode) {
+                    rogueMode.deactivate();
+                }
                 isRogueMode = false;
-                localStorage.removeItem('rogueModeActive');
                 questionsPerQuiz = 5;
                 restartCount = 0;
                 currentQuestion = 0;
                 totalPoints = 0;
-                randomizedQuestions = shuffle(window.starterQuestions).slice(0, questionsPerQuiz);
+                  // Get questions to use (modular first, then legacy fallback)
+                let questionsToUse = [];
+                if (starterQuestionsModule) {
+                    questionsToUse = starterQuestionsModule.getRandomQuestions(questionsPerQuiz);
+                } else if (window.starterQuestions && Array.isArray(window.starterQuestions)) {
+                    questionsToUse = window.starterQuestions;
+                } else if (window.questions && Array.isArray(window.questions)) {
+                    questionsToUse = window.questions;
+                }
+                
+                if (questionsToUse.length === 0) {
+                    console.error('No questions available! Make sure questions.js is loaded.');
+                    alert('Error: Questions failed to load. Please refresh the page.');
+                    return;
+                }
+                
+                randomizedQuestions = shuffle(questionsToUse).slice(0, questionsPerQuiz);
                 setElementDisplay('start-screen', 'none');
                 setElementDisplay('quiz-container', 'block');
                 setElementDisplay('results', 'none');
                 showQuestion();
+            };        }
+        // Add sound to Rogue Mode start button if present
+        const rogueBtn = document.getElementById('rogue-mode-btn');
+        if (rogueBtn && rogueMode) {
+            rogueMode.updateRogueButton();
+            rogueBtn.onclick = function() {
+                playSound('start');
+                rogueMode.navigateToRogueMode();
+            };
+        } else if (rogueBtn) {
+            // Fallback for when rogue mode module isn't available
+            rogueBtn.onclick = function() {
+                playSound('start');
+                localStorage.setItem('rogueModeActive', 'true');
+                window.location.href = 'index.html?rogue=1';
             };
         }
         // On page load, show tally/badge if present, but hide tally table
@@ -226,15 +498,230 @@
                 randomizedQuestions = shuffle(window.questions).slice(0, questionsPerQuiz);
             }
         }
-    });
+    }
 
-    function shuffle(array) {
-        let arr = array.slice();
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
+    // Initialize the app either when DOM is ready or immediately if already ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeQuizApp);
+    } else {
+        initializeQuizApp();
+    }
+
+    // --- Utility to hide all main screens except the one you want ---
+    function showOnly(containerId) {
+        const ids = ['start-screen', 'quiz-container', 'results', 'game-container'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = (id === containerId) ? 'block' : 'none';
+        });
+    }
+
+    // --- Microgame Integration ---
+    let microgameActive = false;
+    let microgameCallback = null;
+    let microgameTimer = null;
+
+    function ensureMicrogameContainer() {
+        let container = document.getElementById('game-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'game-container';
+            container.style.display = 'none';
+            document.body.appendChild(container);
         }
-        return arr;
+        return container;
+    }
+
+    // Unified microgame launcher: always uses glitch interruption, always hides other screens
+    function launchMicrogameWithGlitch(nextQuestionFunction) {
+        const interruptions = [
+            "\u26a0\ufe0f System anomaly detected… initiating trust subroutine.",
+            "\ud83d\udc41\ufe0f Suspicious response flagged. Launching integrity check.",
+            "\ud83e\udd16 Random audit in progress. You may not proceed.",
+            "\ud83d\uded1 Too confident. Initiating fail-safe micro-evaluation.",
+            "\ud83d\udce1 Interference detected. Deploying microgame…"
+        ];
+        const msg = interruptions[Math.floor(Math.random() * interruptions.length)];
+        const overlay = document.getElementById('glitch-interrupt');
+        const msgDiv = document.getElementById('glitch-message');
+        if (overlay && msgDiv) {
+            msgDiv.textContent = msg;
+            overlay.style.display = 'flex';
+            overlay.offsetHeight;
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                showOnly('game-container');
+                launchMicrogameOnly(nextQuestionFunction);
+            }, 1400);
+        } else {
+            // Fallback: just launch microgame
+            showOnly('game-container');
+            launchMicrogameOnly(nextQuestionFunction);
+        }
+    }    // Helper: launches a microgame and ensures only game-container is visible
+    function launchMicrogameOnly(nextQuestionFunction) {
+        const games = window.Microgames || (typeof Microgames !== 'undefined' ? Microgames : []);
+        if (games.length) {
+            const randomGame = games[Math.floor(Math.random() * games.length)];
+            microgameActive = true;
+            
+            // Clear any previous completion flag
+            window.__microgameFinished = false;
+            
+            showOnly('game-container');
+            const gameContainer = ensureMicrogameContainer();
+            gameContainer.style.display = 'block';
+            
+            // Use the new JavaScript-based loader first, with HTML fallback
+            if (window.loadMicrogameJS) {
+                console.log('🎮 Using new JavaScript microgame loader');
+                
+                // Set up completion tracking
+                let gameCompleted = false;
+                
+                const handleCompletion = function() {
+                    if (gameCompleted) return;
+                    gameCompleted = true;
+                    
+                    clearTimeout(microgameTimer);
+                    gameContainer.innerHTML = '';
+                    microgameActive = false;
+                    showOnly('quiz-container');
+                    
+                    if (typeof nextQuestionFunction === 'function') nextQuestionFunction();
+                };
+                
+                // Set up message listener for microgame completion
+                const messageHandler = function(event) {
+                    if (event.data && event.data.microgameResult && microgameActive) {
+                        handleCompletion();
+                        window.removeEventListener('message', messageHandler);
+                    }
+                };
+                
+                const eventHandler = function(event) {
+                    if (microgameActive) {
+                        handleCompletion();
+                        window.removeEventListener('microgameComplete', eventHandler);
+                    }
+                };
+                
+                window.addEventListener('message', messageHandler);
+                window.addEventListener('microgameComplete', eventHandler);
+                
+                // Legacy fallback for direct function calls
+                window.submitMicrogameScore = function(tier) {
+                    if (microgameActive) {
+                        handleCompletion();
+                        window.removeEventListener('message', messageHandler);
+                        window.removeEventListener('microgameComplete', eventHandler);
+                    }
+                };
+                
+                // Set up timeout for microgame
+                if (randomGame.timeLimit) {
+                    microgameTimer = setTimeout(() => {
+                        if (microgameActive && !window.__microgameFinished && !gameCompleted) {
+                            console.log('Microgame time limit reached');
+                            handleCompletion();
+                        }
+                    }, randomGame.timeLimit);
+                }
+                
+                // Fallback timeout in case microgame doesn't respond
+                setTimeout(() => {
+                    if (microgameActive && !window.__microgameFinished && !gameCompleted) {
+                        console.log('Microgame timeout fallback triggered');
+                        handleCompletion();
+                    }
+                }, (randomGame.timeLimit || 10000) + 5000);
+                
+                // Load the microgame using the new system
+                window.loadMicrogameJS(randomGame.id, () => {
+                    if (!gameCompleted) {
+                        handleCompletion();
+                    }
+                });
+                
+            } else {
+                // Fallback to iframe approach (old system)
+                console.log('🎮 Falling back to iframe microgame loader');
+                
+                const microgamePath = `microgames/${randomGame.file}.html`;
+                
+                // Create iframe element
+                const iframe = document.createElement('iframe');
+                iframe.src = microgamePath;
+                iframe.style.width = '100%';
+                iframe.style.height = '100vh';
+                iframe.style.border = 'none';
+                iframe.style.background = '#0b0c10';
+                
+                // Clear container and add iframe
+                gameContainer.innerHTML = '';
+                gameContainer.appendChild(iframe);
+                
+                // Set up message listener for microgame completion
+                const messageHandler = function(event) {
+                    if (event.data && event.data.microgameResult && microgameActive) {
+                        clearTimeout(microgameTimer);
+                        gameContainer.innerHTML = '';
+                        microgameActive = false;
+                        showOnly('quiz-container');
+                        
+                        // Remove the message listener
+                        window.removeEventListener('message', messageHandler);
+                        
+                        if (typeof nextQuestionFunction === 'function') nextQuestionFunction();
+                    }
+                };
+                
+                window.addEventListener('message', messageHandler);
+                
+                // Legacy fallback for direct function calls (backward compatibility)
+                window.submitMicrogameScore = function(tier) {
+                    if (microgameActive) {
+                        clearTimeout(microgameTimer);
+                        gameContainer.innerHTML = '';
+                        microgameActive = false;
+                        showOnly('quiz-container');
+                        window.removeEventListener('message', messageHandler);
+                        if (typeof nextQuestionFunction === 'function') nextQuestionFunction();
+                    }
+                };
+                
+                // Set up timeout for microgame
+                if (randomGame.timeLimit) {
+                    microgameTimer = setTimeout(() => {
+                        if (microgameActive && !window.__microgameFinished) {
+                            console.log('Microgame time limit reached');
+                            clearTimeout(microgameTimer);
+                            gameContainer.innerHTML = '';
+                            microgameActive = false;
+                            showOnly('quiz-container');
+                            window.removeEventListener('message', messageHandler);
+                            if (typeof nextQuestionFunction === 'function') nextQuestionFunction();
+                        }
+                    }, randomGame.timeLimit);
+                }
+                
+                // Fallback timeout in case microgame doesn't respond
+                setTimeout(() => {
+                    if (microgameActive && !window.__microgameFinished) {
+                        console.log('Microgame timeout fallback triggered');
+                        clearTimeout(microgameTimer);
+                        gameContainer.innerHTML = '';
+                        microgameActive = false;
+                        showOnly('quiz-container');
+                        window.removeEventListener('message', messageHandler);
+                        if (typeof nextQuestionFunction === 'function') nextQuestionFunction();
+                    }
+                }, (randomGame.timeLimit || 10000) + 5000);
+            }
+            
+        } else {
+            if (typeof nextQuestionFunction === 'function') nextQuestionFunction();
+        }
     }
 
     function showQuestion() {
@@ -257,6 +744,7 @@
             const btn = document.createElement('button');
             btn.textContent = opt.text;
             btn.onclick = () => {
+                playSound('click');
                 Array.from(ul.querySelectorAll('button')).forEach(b => b.disabled = true);
                 totalPoints += opt.points;
                 currentQuestion++;
@@ -301,7 +789,7 @@
             "Almost there! Hope you like digital ankle monitors.",
             "Proceed with caution. AI trust is a fragile thing.",
             "Every click brings you closer to the singularity... or security review.",
-            "You’re either a saint or a supervillain. The quiz will decide.",
+            "You're either a saint or a supervillain. The quiz will decide.",
             "Remember: AI never forgets. Neither do we.",
             "This is not a test. (Okay, it is. But still.)"
         ];
@@ -311,15 +799,92 @@
         container.appendChild(progressBarWrapper);
     }
 
-    // --- Results, Tally, and Badge Logic ---
+    // Patch showQuestion ONCE to use microgames only after first playthrough AND first question in each round
+    const _originalShowQuestion = showQuestion;
+    showQuestion = function() {
+        if (microgameActive) return;
+        // Only allow microgames after the first playthrough AND after answering at least the first question in current round
+        const playCount = getPlayCount();
+        if (playCount > 0 && currentQuestion > 0) {
+            if (Math.random() < 0.25) {
+                launchMicrogameWithGlitch(_originalShowQuestion);
+                return;
+            }
+        }
+        _originalShowQuestion();
+    };
+
+    function shuffle(array) {
+        if (!array || !Array.isArray(array)) {
+            console.warn('⚠️ shuffle() called with invalid array:', array);
+            return [];
+        }
+        let arr = array.slice();
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }    // --- Results, Tally, and Badge Logic ---
     function showResults() {
         setElementDisplay('quiz-container', 'none');
         setElementDisplay('results', 'block');
-        const resText = document.getElementById('result-text');
-        const revealBtn = document.getElementById('reveal-results-btn');
-        const restartBtn = document.getElementById('restart-btn');
-        resultsRevealed = false;
-        restartBtn.disabled = true;
+          // Try to load the modular results screen if screen loader is available
+        if (window.screenLoader && typeof window.screenLoader.loadScreen === 'function') {
+            window.screenLoader.loadScreen('results', 'results').then(() => {
+                console.log('✅ Results screen loaded successfully');
+            }).catch(error => {
+                console.warn('⚠️ Failed to load results screen:', error);
+                // Fallback: Ensure basic results elements exist
+                ensureResultsElements();
+            });
+        } else {
+            console.warn('⚠️ Screen loader not available, ensuring basic results elements');
+            ensureResultsElements();
+        }
+        
+        // Helper function to ensure basic results elements exist
+        function ensureResultsElements() {
+            const resultsContainer = document.getElementById('results');
+            if (resultsContainer && !document.getElementById('result-text')) {
+                resultsContainer.innerHTML = `
+                    <div class="results-container">
+                        <h2>Your AI Trust Tier Assessment</h2>
+                        <button id="reveal-results-btn" type="button">🔓 Reveal Results</button>
+                        <div id="result-text" style="display:none;"></div>
+                        <div class="button-group" style="margin-top: 2em;">
+                            <button id="restart-btn" type="button" disabled>↩️ Try Again</button>
+                            <button id="exit-btn-results" class="exit-btn" type="button">Exit</button>
+                        </div>
+                        <div id="share-cta" style="display:none;">
+                            <a href="#" id="share-x">🐦 X</a>
+                            <a href="#" id="share-fb">📘 Facebook</a>
+                            <a href="#" id="share-li">💼 LinkedIn</a>
+                        </div>
+                    </div>
+                `;
+            }        }
+        
+        // Wait a moment for DOM elements to be available, then continue
+        setTimeout(() => {
+            // Get elements with null checks (they should exist now)
+            const resText = document.getElementById('result-text');
+            const revealBtn = document.getElementById('reveal-results-btn');
+            const restartBtn = document.getElementById('restart-btn');
+            
+            resultsRevealed = false;
+            if (restartBtn) {
+                restartBtn.disabled = true;
+            } else {
+                console.warn('⚠️ restart-btn element still not found after loading attempt');
+            }
+            
+            // Continue with results logic
+            continueWithResults(resText, revealBtn, restartBtn);
+        }, 100);
+    }
+    
+    function continueWithResults(resText, revealBtn, restartBtn) {
         // --- Trust Tier Tally and Badge Logic ---
         const maxPoints = questionsPerQuiz * 4;
         const percent = totalPoints / maxPoints;
@@ -333,75 +898,78 @@
             setTally(tally);
             setPlayCount(playCount);
         }
-        let badgeJustEarned = false;
-        // Award badge if tally for this tier reaches 3 and badge not yet earned (not in Rogue Mode)
-        if (!isRogueMode && !badge && tally[tierResult.tier] === 3) {
-            setBadge(tierResult.tier);
+        let badgeJustEarned = false;        // Award badge if tally for this tier reaches 3 and badge not yet earned (not in Rogue Mode)
+        let newBadgeId = null;
+        if (!isRogueMode && !badge && tally[tierResult.tier] === 3) {            // Get a random badge for this tier using the new system
+            newBadgeId = getRandomBadgeForTier(tierResult.tier);
+            addEarnedBadge(newBadgeId);
+            setBadge(tierResult.tier); // Keep tier for compatibility
             badge = tierResult.tier;
             badgeJustEarned = true;
+            
+            // Unlock rogue mode when badge is earned
+            if (rogueMode) {
+                rogueMode.unlock();
+            } else {
+                // Fallback
+                localStorage.setItem('rogueModeUnlocked', 'true');
+            }
         }
         // --- GAME OVER WARNING LOGIC ---
         if (!isRogueMode && !badge && playCount >= 5) {
             // Show a warning or overlay, but do NOT redirect away from results page
             // Optionally, you could display a message or disable the restart button, but allow results viewing
             // For now, just allow normal results flow
-        }
-        if (isRogueMode) {
-            // No badges, no retries, no tally
-            setElementDisplay('tier-tally-badge-wrapper', 'none');
-            setElementDisplay('ai-safety-message', 'none');
+        }        if (isRogueMode) {
+            // Use rogue mode module for UI and buttons
+            if (rogueMode) {
+                rogueMode.applyUIModifications();
+            } else {
+                // Fallback UI modifications
+                setElementDisplay('tier-tally-badge-wrapper', 'none');
+                setElementDisplay('ai-safety-message', 'none');
+            }
+            
             setElementHTML('results-congrats', 'Rogue Mode Complete!');
-            resText.innerHTML = tierResult.text + '<br><br><strong>You survived Rogue Mode. No badges. No retries.</strong>';
-            resText.style.display = 'none';
-            revealBtn.style.display = 'inline-block';
+            
+            // Use the same tier personality display as normal mode
+            const tierPersonality = displayTierPersonality(tierResult.tier);
+            if (resText) {
+                resText.innerHTML = tierPersonality + '<br><br><strong>You survived Rogue Mode. No badges. No retries.</strong>';
+                resText.style.display = 'none';
+            }
+            if (revealBtn) {
+                revealBtn.style.display = 'inline-block';
+            }
             let viewBadgeBtn = document.getElementById('view-badge-btn');
             if (viewBadgeBtn) viewBadgeBtn.style.display = 'none';
-            restartBtn.style.display = 'none';
+            if (restartBtn) {
+                restartBtn.style.display = 'none';
+            }
+            
             // Add Rogue Mode options after reveal
-            revealBtn.onclick = function() {
-                revealBtn.style.display = 'none';
-                resText.style.display = 'block';
-                resultsRevealed = true;
-                // Add Rogue Mode options
-                let rogueOptions = document.getElementById('rogue-mode-options');
-                if (!rogueOptions) {
-                    rogueOptions = document.createElement('div');
-                    rogueOptions.id = 'rogue-mode-options';
-                    rogueOptions.style.marginTop = '2em';
-                    rogueOptions.style.display = 'flex';
-                    rogueOptions.style.justifyContent = 'center';
-                    rogueOptions.style.gap = '1.5em';
-                    rogueOptions.innerHTML = `
-                        <button id="replay-rogue-btn" class="restart-btn" style="background:#b00; color:#fff;">Replay Rogue Mode</button>
-                        <button id="restart-all-btn" class="restart-btn">Restart From Beginning</button>
-                        <button id="exit-btn-results" class="exit-btn">Exit</button>
-                    `;
-                    resText.parentNode.insertBefore(rogueOptions, resText.nextSibling);
-                }
-                document.getElementById('replay-rogue-btn').onclick = function() {
-                    // Restart Rogue Mode
-                    localStorage.setItem('rogueModeActive', 'true');
-                    window.location.href = 'index.html?rogue=1';
+            if (revealBtn) {
+                revealBtn.onclick = function() {
+                    if (revealBtn) revealBtn.style.display = 'none';
+                    if (resText) resText.style.display = 'block';
+                    resultsRevealed = true;
+                    
+                    // Hide any existing exit/restart buttons to prevent duplicates
+                    removeElementById('exit-btn-results');
+                    removeElementById('restart-btn');
+                    
+                    // Add Rogue Mode options using the module
+                    let rogueOptions = document.getElementById('rogue-mode-options');
+                    if (!rogueOptions && rogueMode) {                        rogueOptions = rogueMode.createRogueResultsButtons();
+                        if (rogueOptions && resText) {
+                            resText.parentNode.insertBefore(rogueOptions, resText.nextSibling);
+                        }
+                    }
                 };
-                document.getElementById('restart-all-btn').onclick = function() {
-                    // Restart everything (normal mode)
-                    localStorage.removeItem('rogueModeActive');
-                    localStorage.removeItem('rogueModeLocked');
-                    localStorage.removeItem('tierTally');
-                    localStorage.removeItem('tierBadge');
-                    localStorage.removeItem('tierPlayCount');
-                    window.location.href = 'index.html';
-                };
-                document.getElementById('exit-btn-results').onclick = function() {
-                    window.open('', '_self', '');
-                    window.close();
-                    setTimeout(function() {
-                        window.location.href = 'https://www.google.com';
-                    }, 300);
-                };
-            };
+            }
             return;
         }
+
         showTallyAndBadge(tally, badge, false);
         // Random quirky/sarcastic congrats messages
         const congratsMessages = [
@@ -415,22 +983,32 @@
             "You did it! A questionable achievement, but an achievement nonetheless.",
             "Big claps for completing a test that says you might be a threat to humanity.",
             "That’s it. No prize. Just self-awareness and mild government scrutiny."
-        ];
-        setElementText('results-congrats', congratsMessages[Math.floor(Math.random() * congratsMessages.length)]);
-        resText.innerHTML = tierResult.text;
-        resText.style.display = 'none';
+        ];        setElementText('results-congrats', congratsMessages[Math.floor(Math.random() * congratsMessages.length)]);
+        
+        // Display tier personality instead of old tier result text
+        const normalTierPersonality = displayTierPersonality(tierResult.tier);
+        if (resText) {
+            resText.innerHTML = normalTierPersonality;
+            resText.style.display = 'none';
+        }
         // Hide results until reveal button is clicked
-        revealBtn.style.display = 'inline-block';
-        let viewBadgeBtn = document.getElementById('view-badge-btn');
-        if (viewBadgeBtn) viewBadgeBtn.style.display = 'none';
-        restartBtn.style.display = 'none';
-        restartBtn.textContent = 'Take it again—maybe the AI misjudged your evil streak.';
-        revealBtn.onclick = function() {
-            revealBtn.style.display = 'none';
-            resText.style.display = 'block';
-            resultsRevealed = true;
-            restartBtn.disabled = false;
-            showTallyAndBadge(tally, badge, true);
+        if (revealBtn) {
+            revealBtn.style.display = 'inline-block';
+        }
+        let normalViewBadgeBtn = document.getElementById('view-badge-btn');
+        if (normalViewBadgeBtn) normalViewBadgeBtn.style.display = 'none';
+        if (restartBtn) {
+            restartBtn.style.display = 'none';
+            restartBtn.textContent = 'Take it again—maybe the AI misjudged your evil streak.';
+        }
+        if (revealBtn) {
+            revealBtn.onclick = function() {
+                playSound('results');
+                if (revealBtn) revealBtn.style.display = 'none';
+                if (resText) resText.style.display = 'block';
+                resultsRevealed = true;
+                if (restartBtn) restartBtn.disabled = false;
+                showTallyAndBadge(tally, badge, true);
             // If badge just earned, show badge reward button (not in Rogue Mode)
             if (!isRogueMode && badgeJustEarned) {
                 restartBtn.style.display = 'none';
@@ -453,22 +1031,14 @@
                     viewBadgeBtn.style.letterSpacing = '0.01em';
                     viewBadgeBtn.style.textAlign = 'center';
                     viewBadgeBtn.style.lineHeight = '1.4';
-                    viewBadgeBtn.onmouseover = function() {
-                        viewBadgeBtn.style.transform = 'scale(1.06)';
-                        viewBadgeBtn.style.boxShadow = '0 8px 32px 0 #00e6e6cc, 0 2px 12px 0 #4f8cff66';
-                    };
-                    viewBadgeBtn.onmouseout = function() {
-                        viewBadgeBtn.style.transform = 'scale(1)';
-                        viewBadgeBtn.style.boxShadow = '0 4px 24px 0 rgba(0, 230, 230, 0.18), 0 1.5px 8px 0 #4f8cff44';
-                    };
                     const resultText = document.getElementById('result-text');
                     resultText.parentNode.insertBefore(viewBadgeBtn, resultText.nextSibling);
-                } else {
-                    viewBadgeBtn.innerHTML = '<span style="font-size:1.5em;vertical-align:middle;">🎉🏅</span><br><span style="font-size:1.15em;font-weight:bold;">Congratulations! You earned a badge for this tier.</span><br><span style="font-size:1.1em;">Click here for your reward.</span>';
+                } else {                    viewBadgeBtn.innerHTML = '<span style="font-size:1.5em;vertical-align:middle;">🎉🏅</span><br><span style="font-size:1.15em;font-weight:bold;">Congratulations! You earned a badge for this tier.</span><br><span style="font-size:1.1em;">Click here for your reward.</span>';
                     viewBadgeBtn.style.display = 'inline-block';
                 }
+                // Always set the onclick handler
                 viewBadgeBtn.onclick = function() {
-                    window.location.href = 'badge.html?badge=' + encodeURIComponent(badge);
+                    navigateToBadge(newBadgeId || badge);
                 };
             } else if (!isRogueMode && !badge && playCount >= 5) {
                 // Special case: 5 plays, no badge, show congrats button that goes to gameover
@@ -492,22 +1062,14 @@
                     viewBadgeBtn.style.letterSpacing = '0.01em';
                     viewBadgeBtn.style.textAlign = 'center';
                     viewBadgeBtn.style.lineHeight = '1.4';
-                    viewBadgeBtn.onmouseover = function() {
-                        viewBadgeBtn.style.transform = 'scale(1.06)';
-                        viewBadgeBtn.style.boxShadow = '0 8px 32px 0 #00e6e6cc, 0 2px 12px 0 #4f8cff66';
-                    };
-                    viewBadgeBtn.onmouseout = function() {
-                        viewBadgeBtn.style.transform = 'scale(1)';
-                        viewBadgeBtn.style.boxShadow = '0 4px 24px 0 rgba(0, 230, 230, 0.18), 0 1.5px 8px 0 #4f8cff44';
-                    };
                     const resultText = document.getElementById('result-text');
                     resultText.parentNode.insertBefore(viewBadgeBtn, resultText.nextSibling);
                 } else {
                     viewBadgeBtn.innerHTML = '<span style="font-size:1.5em;vertical-align:middle;">🏅</span><br><span style="font-size:1.15em;font-weight:bold;">Congratulations!</span><br><span style="font-size:1.1em;">Click here for your reward.</span>';
                     viewBadgeBtn.style.display = 'inline-block';
-                }
+                }                // Always set the onclick handler
                 viewBadgeBtn.onclick = function() {
-                    window.location.href = 'gameover.html';
+                    navigateToGameOver();
                 };
             } else {
                 // If badge already earned, just show the result as usual (no blocking, no special message)
@@ -536,32 +1098,35 @@
             if (!resultsRevealed) {
                 const msg = quirkyPopups[Math.floor(Math.random() * quirkyPopups.length)];
                 warningDiv.textContent = msg;
-                warningDiv.style.display = 'block';
-                setTimeout(() => { warningDiv.style.display = 'none'; }, 3500);
+                warningDiv.style.display = 'block';                setTimeout(() => { warningDiv.style.display = 'none'; }, 3500);
                 e.preventDefault();
                 return false;
             }
             warningDiv.style.display = 'none';
-            restartQuiz();
-        };
+            restartQuiz();        }; // End of restartBtn.onclick
+        }; // End of revealBtn.onclick
+        
         // Social share logic
         const url = encodeURIComponent(window.location.href);
         const text = encodeURIComponent('I got ' + tierResult.tier + ' on the AI Trust Tier Quiz! Find your tier:');
-        document.getElementById('share-x').href = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
-        document.getElementById('share-fb').href = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
-        document.getElementById('share-li').href = `https://www.linkedin.com/shareArticle?mini=true&url=${url}&title=AI%20Trust%20Tier%20Quiz&summary=${text}`;
+        const shareX = document.getElementById('share-x');
+        const shareFb = document.getElementById('share-fb');
+        const shareLi = document.getElementById('share-li');
+        
+        if (shareX) shareX.href = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
+        if (shareFb) shareFb.href = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+        if (shareLi) shareLi.href = `https://www.linkedin.com/shareArticle?mini=true&url=${url}&title=AI%20Trust%20Tier%20Quiz&summary=${text}`;
     }
 
     function showTallyAndBadge(tally, badge, showTallyTable) {
         const wrapper = document.getElementById('tier-tally-badge-wrapper');
         const tableDiv = document.getElementById('tier-tally-table');
-        const badgeDiv = document.getElementById('badge-earned');
-        const TIER_EMOJIS = {
-            T1: '👶',
-            T2: '🤖',
-            T3: '🧠',
-            T4: '🛡️',
-            TX: '💀'
+        const badgeDiv = document.getElementById('badge-earned');        const TIER_EMOJIS = {
+            T1: '🐣',
+            T2: '🛠',
+            T3: '📚',
+            T4: '🕊️',
+            TX: '☠️'
         };
         let table = '<table style="margin:0 auto; border-collapse:collapse; font-size:1.1em; background:#f8fbff; border-radius:8px; box-shadow:0 2px 8px #e0e7ef;">';
         table += '<tr style="background:#e0e7ef;"><th style="padding:0.5em 1.2em;">Tier</th>';
@@ -643,4 +1208,67 @@
         getTally, setTally, getBadge, setBadge, getPlayCount, setPlayCount, resetTallyAndBadge,
         showQuestion
     };
+
+    // --- Badge System Utility Functions ---
+    function getEarnedBadges() {
+        return JSON.parse(localStorage.getItem('earnedBadges') || '[]');
+    }
+
+    function addEarnedBadge(badgeId) {
+        const earned = getEarnedBadges();
+        if (!earned.includes(badgeId)) {
+            earned.push(badgeId);
+            localStorage.setItem('earnedBadges', JSON.stringify(earned));
+        }
+    }
+
+    function getRandomBadgeForTier(tier) {
+        // Use global TIER_BADGES if available, otherwise use local fallback
+        const badges = (window.TIER_BADGES || TIER_BADGES)[tier];
+        if (!badges || badges.length === 0) return null;
+        return badges[Math.floor(Math.random() * badges.length)].id;
+    }
+
+    function getBadgeById(badgeId) {
+        // Use global TIER_BADGES if available, otherwise use local fallback
+        const allBadges = window.TIER_BADGES || TIER_BADGES;
+        for (const tier in allBadges) {
+            const badge = allBadges[tier].find(b => b.id === badgeId);
+            if (badge) return badge;
+        }
+        return null;
+    }
+
+    function displayTierPersonality(tier) {
+        // Use global TIER_PERSONALITIES if available, otherwise use local fallback
+        const personalities = window.TIER_PERSONALITIES || TIER_PERSONALITIES;
+        const personality = personalities[tier];
+        if (!personality) return `<div>Tier ${tier} - Unknown personality type</div>`;
+        
+        return `
+            <div style="text-align: center; margin: 1.5em 0;">
+                <div style="font-size: 4em; margin-bottom: 0.5em;">${personality.emoji}</div>
+                <div style="font-size: 1.8em; font-weight: bold; margin-bottom: 1em;">${personality.title}</div>
+                <div style="font-size: 1.2em; margin-bottom: 1.5em;">
+                    <strong>Your AI Trust Traits:</strong><br>
+                    ${personality.traits.map(trait => `<span style="display: inline-block; background: #e3f2fd; padding: 0.3em 0.8em; margin: 0.2em; border-radius: 20px; color: #1565c0;">${trait}</span>`).join('')}
+                </div>            </div>
+        `;
+    }
+
+    // --- Expose Badge System Functions Globally ---
+    // Make badge functions available for badge.html and other pages
+    window.getBadgeById = getBadgeById;
+    window.getRandomBadgeForTier = getRandomBadgeForTier;
+    window.getEarnedBadges = getEarnedBadges;
+    window.addEarnedBadge = addEarnedBadge;
+    window.displayTierPersonality = displayTierPersonality;
+    
+    // Expose constants if not already available
+    if (!window.TIER_PERSONALITIES) {
+        window.TIER_PERSONALITIES = TIER_PERSONALITIES;
+    }
+    if (!window.TIER_BADGES) {
+        window.TIER_BADGES = TIER_BADGES;
+    }
 })();

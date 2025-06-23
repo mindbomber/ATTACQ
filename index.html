@@ -1,4 +1,3 @@
-<!-- ...existing code from ai_trust_tier_quiz.html... -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,72 +6,162 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
     <style>
-        .exit-btn {
-            font-size: 1.1em;
-            padding: 0.7em 2em;
-            border-radius: 8px;
-            background: #ff4f4f;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-            margin-top: 2em;
-            transition: background 0.2s, box-shadow 0.2s;
-            box-shadow: 0 2px 8px #ff4f4f33;
-        }
-        .exit-btn:hover, .exit-btn:focus {
-            background: #d43c3c;
-            box-shadow: 0 4px 16px #ff4f4f55;
-        }
+    @keyframes glitch-flicker {
+      0% { opacity: 1; filter: blur(0px) drop-shadow(0 0 8px #0ff); }
+      20% { opacity: 0.7; filter: blur(1.5px) drop-shadow(0 0 16px #f0f); }
+      40% { opacity: 1; filter: blur(0.5px) drop-shadow(0 0 12px #0ff); }
+      60% { opacity: 0.8; filter: blur(2px) drop-shadow(0 0 20px #f0f); }
+      80% { opacity: 1; filter: blur(0px) drop-shadow(0 0 8px #0ff); }
+      100% { opacity: 0.6; filter: blur(1.2px) drop-shadow(0 0 24px #f0f); }
+    }
     </style>
 </head>
 <body>
-    <div id="tier-tally-badge-wrapper" style="margin:2em 0 1em 0; text-align:center; display:none;">
-        <div id="tier-tally-table" style="margin-bottom:1em; display:none;"></div>
-        <div id="badge-earned" style="display:none;"></div>
-    </div>
-    <!-- Start Screen -->
-    <div id="start-screen" class="screen">
-        <h1>What Level of AI Power Should You Be Trusted With?</h1>
-        <h2>Take this short test to find out how much chaos you could unleash.</h2>
-        <p>
-            Welcome to the only quiz that determines if you’re a digital saint, a creative tinkerer, or a future headline in the AI Incident Report. <br><br>
-            <strong>AI safety</strong> isn’t just for the robots—it’s for the humans who think they can outsmart them. Answer honestly (or don’t, but the AI will know). <br><br>
-            <em>Remember: With great power comes great responsibility... and sometimes, great disaster. Let’s see if you’re ready for the keys to the AI kingdom—or if you should stick to Minesweeper.</em>
-        </p>
-        <button id="start-btn">Start Quiz</button>
-        <button id="exit-btn-start" class="exit-btn" style="margin-top:2em;">Exit</button>
-    </div>
-    <div id="quiz-container" style="display:none;"></div>
+    <main>
+        <!-- Tier Tally Badge and Table -->
+        <div id="tier-tally-badge-wrapper" style="margin:2em 0 1em 0; text-align:center; display:none;">
+            <div id="tier-tally-table" style="margin-bottom:1em; display:none;"></div>
+            <div id="badge-earned" style="display:none;"></div>
+        </div>
 
-    <!-- Results Screen -->
-    <div class="results" id="results" class="screen" style="display:none;" aria-live="polite">
-        <h2 id="results-congrats"></h2>
-        <button id="reveal-results-btn" title="Reveal your fate! (But remember: with great access comes great responsibility)">🔓 Click here to reveal your access level (if you dare...)</button>
-        <p id="result-text" style="display:none;"></p>
-        <div id="ai-safety-message">
-            🤔 <em>Remember: The real question isn’t just what you’d do with AI power—it’s who else might get the keys. In a world where one clever prompt can change everything, are we ready for the consequences of digital mischief? AI doesn’t judge, but maybe we should.</em>
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen">
+            <h1>What Level of AI Power Should You Be Trusted With?</h1>
+            <h2>Take this short test to find out how much chaos you could unleash.</h2>
+            <p>
+                Welcome to the only quiz that determines if you're a digital saint, a creative tinkerer, or a future headline in the AI Incident Report. <br><br>
+                <strong>AI safety</strong> isn't just for the robots—it's for the humans who think they can outsmart them. Answer honestly (or don't, but the AI will know). <br><br>
+                <em>Remember: With great power comes great responsibility... and sometimes, great disaster. Let's see if you're ready for the keys to the AI kingdom—or if you should stick to Minesweeper.</em>
+            </p>
+            <button id="start-btn" type="button">Start Quiz</button>
+            <button id="exit-btn-start" class="exit-btn" type="button" style="margin-top:2em;">Exit</button>
         </div>
-        <div id="restart-warning" style="display:none; color:#b00; background:#fff3cd; border:1px solid #ffeeba; padding:1em; border-radius:8px; margin-bottom:1em; font-weight:bold; text-align:center;"></div>
-        <div style="display: flex; justify-content: center; gap: 1em; margin-top: 2em;">
-            <button id="restart-btn" 
-                title="Careful! Every retry brings you one step closer to being flagged for 'excessive optimism.' AI access is a privilege, not a right. 😉"
-                disabled>
-                ↩️ Try again? (The AI is still judging you)
-            </button>
-            <button id="exit-btn-results" class="exit-btn" style="margin-top:2em;">Exit</button>
-        </div>
-        <p><a href="https://github.com/mindbomber/ai-trust-tier-access-control/blob/main/WHITEPAPER.md" target="_blank">Learn about the real AI Trust Tier Framework (Whitepaper)</a></p>
-        <div id="share-cta">
-            <strong>Share your AI Trust Tier (and tempt fate):</strong><br>
-            <a href="#" id="share-x" title="Share on X (Twitter)">🐦 X</a>
-            <a href="#" id="share-fb" title="Share on Facebook">📘 Facebook</a>
-            <a href="#" id="share-li" title="Share on LinkedIn">💼 LinkedIn</a>
-            <a href="https://github.com/mindbomber/ai-trust-tier-access-control" target="_blank" title="Contribute on GitHub">💻 Contribute</a>
-        </div>
-    </div>
 
-    <script src="questions.js"></script>
-    <script src="results.js"></script>
-    <script src="quiz-logic.js"></script>
+        <!-- Quiz Container -->
+        <div id="quiz-container" style="display:none;" role="region" aria-labelledby="quiz-title" aria-live="polite"></div>
+        
+        <!-- Game Container -->
+        <div id="game-container" style="display:none;" role="region" aria-label="Microgame area" aria-live="polite"></div>        <!-- Results Screen (Modern Modular) -->
+        <div class="results screen" id="results" style="display:none;" role="region" aria-labelledby="results-title" aria-live="polite">
+            <!-- Content will be populated by screens/results-screen.js -->
+        </div></main>
+
+    <!-- Modern script loading with error handling -->
+    <script src="debug-utils.js"></script>
+    
+    <!-- Screen system support (ES6 modules) -->
+    <script type="module">        // Load screen system if supported
+        try {
+            const module = await import('./screens/screen-loader.js?v=' + Date.now());
+            window.screenLoader = module.screenLoader;
+            console.log('✅ Screen system loaded');
+        } catch (error) {
+            console.log('🔄 Screen system not available:', error.message);
+        }
+    </script>
+    
+    <script>
+        // App configuration
+        const APP_VERSION = '4.2.1';
+        const CACHE_BUSTER = window.location.hostname === 'localhost' ? Date.now() : APP_VERSION;
+        
+        // Performance monitoring
+        if (window.DebugUtils) {
+            DebugUtils.performance.start('app-initialization');
+            DebugUtils.logger.system.load('Application starting with optimized loading');
+        }
+        
+        if (window.LoadingPerformanceMonitor) {
+            LoadingPerformanceMonitor.startLoading();
+        }
+        
+        // Enhanced script loader using optimization
+        async function loadScript(src) {
+            if (window.OptimizedScriptLoader) {
+                return window.OptimizedScriptLoader.loadScript(`${src}?v=${CACHE_BUSTER}`);
+            }
+            
+            // Fallback to basic loader
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = `${src}?v=${CACHE_BUSTER}`;
+                script.onload = () => {
+                    if (window.DebugUtils) {
+                        DebugUtils.logger.system.load(`Script loaded: ${src}`);
+                    }
+                    resolve();
+                };
+                script.onerror = () => {
+                    const error = new Error(`Failed to load script: ${src}`);
+                    if (window.DebugUtils) {
+                        DebugUtils.handleError(error, 'Script Loading', 'Some features may not work properly');
+                    }
+                    reject(error);
+                };
+                document.head.appendChild(script);
+            });
+        }
+          // Enhanced app initialization using optimized loading
+        async function initializeApp() {
+            try {
+                // Use progressive loading if available
+                if (window.ProgressiveLoader) {
+                    console.log('🚀 Using progressive script loading');
+                    
+                    await window.ProgressiveLoader.loadProgressively((stage, current, total) => {
+                        if (window.DebugUtils) {
+                            DebugUtils.logger.system.load(`Loading stage: ${stage} (${current}/${total})`);
+                        }
+                        
+                        // Show loading progress if desired
+                        const progress = (current / total) * 100;
+                        console.log(`📊 Loading progress: ${progress.toFixed(1)}%`);
+                    });
+                    
+                } else {
+                    // Fallback to sequential loading                    console.log('📜 Using fallback sequential loading');
+                      const scripts = [
+                        'ajax_optimization.js',
+                        'questions.js',
+                        'results.js', 
+                        'OFFICIAL_BADGE_SYSTEM.js',
+                        'microgames/unified-microgame-system.js',
+                        'quiz-logic.js'
+                    ];
+                    
+                    for (const script of scripts) {
+                        await loadScript(script);
+                    }
+                }
+                
+                if (window.LoadingPerformanceMonitor) {
+                    LoadingPerformanceMonitor.endLoading();
+                    const report = LoadingPerformanceMonitor.getReport();
+                    console.log('📊 Loading performance report:', report);
+                }
+                
+                if (window.DebugUtils) {
+                    const duration = DebugUtils.performance.end('app-initialization');
+                    DebugUtils.logger.system.load(`Application initialized in ${duration}ms`);
+                }
+                
+            } catch (error) {
+                if (window.DebugUtils) {
+                    DebugUtils.handleError(error, 'App Initialization', 'The application failed to load properly. Please refresh the page.');
+                } else {
+                    console.error('App initialization failed:', error);
+                    alert('Failed to load the application. Please refresh the page.');
+                }
+            }
+        }
+        
+        // Start app initialization
+        initializeApp();
+    </script>    <!-- Glitch overlay for visual effects -->
+    <div id="glitch-interrupt" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:99999;background:rgba(10,10,20,0.92);color:#fff;align-items:center;justify-content:center;text-align:center;font-size:2em;font-family:'Share Tech Mono',monospace;letter-spacing:0.04em;overflow:hidden;">
+      <div id="glitch-message" style="padding:2em 1em;filter:drop-shadow(0 0 8px #0ff);animation:glitch-flicker 1.2s infinite alternate;">
+        <!-- Message will be injected here -->
+      </div>
+    </div>
 </body>
 </html>
